@@ -243,16 +243,6 @@ const envEl = {
   empty: document.getElementById('env-empty'),
   error: document.getElementById('env-error'),
   refresh: document.getElementById('env-refresh'),
-  deployBtn: document.getElementById('env-deploy'),
-  deployDialog: document.getElementById('env-deploy-dialog'),
-  deployForm: document.getElementById('env-deploy-form'),
-  deployCancel: document.getElementById('env-deploy-cancel'),
-  deploySubmit: document.getElementById('env-deploy-submit'),
-  deployDatabase: document.getElementById('env-deploy-database'),
-  deployVersion: document.getElementById('env-deploy-version'),
-  deployEnv: document.getElementById('env-deploy-env'),
-  deployTTL: document.getElementById('env-deploy-ttl'),
-  deployHint: document.getElementById('env-deploy-hint'),
   opsList: document.getElementById('env-ops-list'),
   opsCount: document.getElementById('env-ops-count'),
   opsEmpty: document.getElementById('env-ops-empty'),
@@ -314,10 +304,6 @@ function renderEnvPool(pool) {
       lease.appendChild(el('span', '', '租约 ' + shortID(env.lease.id)))
       if (env.lease.owner) lease.appendChild(el('span', '', '占用 ' + env.lease.owner))
       if (env.lease.expiresAt) lease.appendChild(el('span', '', '到期 ' + beijingTime(env.lease.expiresAt)))
-      const freeBtn = el('button', 'env-free', '释放')
-      freeBtn.type = 'button'
-      freeBtn.addEventListener('click', () => freeEnv(env, freeBtn))
-      lease.appendChild(freeBtn)
       row.appendChild(lease)
     }
 
@@ -384,81 +370,8 @@ async function loadEnv() {
   }
 }
 
-// freeEnv 会让 cwe 按租约恢复基线，属于有副作用的操作，所以先确认再发。
-async function freeEnv(env, button) {
-  if (!env.lease) return
-  const confirmed = window.confirm(`释放环境 ${env.name}？\ncwe 会按租约恢复基线，环境回到可再分配状态。`)
-  if (!confirmed) return
-  button.disabled = true
-  try {
-    const response = await fetch('/api/env/free', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lease: env.lease.id }),
-    })
-    if (!response.ok) {
-      const text = await response.text()
-      throw new Error(text || `HTTP ${response.status}`)
-    }
-    const receipt = await response.json().catch(() => ({}))
-    toast(receipt.alreadyReleased ? `${env.name} 已是释放状态` : `已提交释放 ${env.name}，恢复基线需要一段时间`)
-    await loadEnv()
-  } catch (error) {
-    toast(`释放失败：${error.message || error}`, true)
-    button.disabled = false
-  }
-}
-
-// submitDeploy 提交一次环境占用。cwe 返回 202 表示已接单，不是已部署完成。
-async function submitDeploy(event) {
-  event.preventDefault()
-  const payload = {
-    database: envEl.deployDatabase.value,
-    version: envEl.deployVersion.value.trim(),
-    env: envEl.deployEnv.value.trim(),
-    ttl: envEl.deployTTL.value.trim(),
-  }
-  if (!payload.database && !payload.env) {
-    envEl.deployHint.textContent = '数据库与环境名至少填一个。'
-    envEl.deployHint.classList.add('is-error')
-    return
-  }
-  envEl.deploySubmit.disabled = true
-  try {
-    const response = await fetch('/api/env/deploy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    const text = await response.text()
-    if (!response.ok) throw new Error(text || `HTTP ${response.status}`)
-    envEl.deployDialog.close()
-    envEl.deployForm.reset()
-    envEl.deployHint.textContent = '数据库与环境名至少填一个。'
-    envEl.deployHint.classList.remove('is-error')
-    toast('已提交申请，部署需要数分钟')
-    await loadEnv()
-  } catch (error) {
-    envEl.deployHint.textContent = `申请失败：${error.message || error}`
-    envEl.deployHint.classList.add('is-error')
-  } finally {
-    envEl.deploySubmit.disabled = false
-  }
-}
-
 if (envEl.entry) {
   envEl.entry.addEventListener('click', () => selectTab('env'))
-  envEl.deployBtn.addEventListener('click', () => {
-    envEl.deployHint.textContent = '数据库与环境名至少填一个。'
-    envEl.deployHint.classList.remove('is-error')
-    envEl.deployDialog.showModal()
-  })
-  envEl.deployCancel.addEventListener('click', () => envEl.deployDialog.close())
-  envEl.deployForm.addEventListener('submit', submitDeploy)
-  // 点击遮罩关闭：dialog 内部点击不关闭，只处理落到 dialog 本身的点击。
-  envEl.deployDialog.addEventListener('click', (event) => {
-    if (event.target === envEl.deployDialog) envEl.deployDialog.close()
-  })
   envEl.refresh.addEventListener('click', loadEnv)
   envEl.back.addEventListener('click', () => {
     history.pushState(null, '', location.pathname)

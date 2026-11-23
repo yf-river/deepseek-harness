@@ -8,7 +8,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os/exec"
 )
 
@@ -209,59 +208,4 @@ func moduleNames(modules []envModule) []string {
 		}
 	}
 	return names
-}
-
-// envFreeRequest 是释放环境的请求体。
-type envFreeRequest struct {
-	Lease string `json:"lease"`
-}
-
-// validate 校验释放请求。lease 必须存在：cwe 的 free 是按租约恢复基线的。
-func (r envFreeRequest) validate() error {
-	if r.Lease == "" {
-		return fmt.Errorf("缺少 lease，无法释放环境")
-	}
-	return nil
-}
-
-// envDeployRequest 是从门户发起环境占用的请求体。
-// 只暴露最必要的筛选项：数据库、版本、精确指定环境、租约时长。
-// services/branch 属于热更，和"申请一个环境"是两件事，不放在这里。
-type envDeployRequest struct {
-	Database    string `json:"database"`
-	Version     string `json:"version"`
-	Environment string `json:"env"`
-	TTL         string `json:"ttl"`
-	Owner       string `json:"owner"`
-}
-
-// validate 校验占用请求。environment 与 database 至少给一个，
-// 否则等于让 cwe 从全池里随机挑，调用方无法预期拿到什么。
-func (r *envDeployRequest) validate() error {
-	if r.Environment == "" && r.Database == "" {
-		return fmt.Errorf("至少指定环境名或数据库类型")
-	}
-	return nil
-}
-
-// toCWEPayload 转成 cwe 的 Deploy 请求体。空字段一律省略，
-// 避免把「不筛选」表达成空字符串导致语义变化。
-func (r envDeployRequest) toCWEPayload() map[string]any {
-	payload := map[string]any{}
-	if r.Database != "" {
-		payload["database"] = r.Database
-	}
-	if r.Version != "" {
-		payload["version"] = r.Version
-	}
-	if r.Environment != "" {
-		payload["env"] = r.Environment
-	}
-	if r.TTL != "" {
-		payload["ttl"] = r.TTL
-	}
-	if r.Owner != "" {
-		payload["owner"] = r.Owner
-	}
-	return payload
 }
