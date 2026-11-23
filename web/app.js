@@ -199,6 +199,7 @@ const robotEl = {
   schedule: document.getElementById('robot-schedule'),
   next: document.getElementById('robot-next'),
   mailto: document.getElementById('robot-mailto'),
+  mailChips: document.getElementById('robot-mailto-chips'),
   enabled: document.getElementById('robot-enabled'),
   sendmail: document.getElementById('robot-sendmail'),
   result: document.getElementById('robot-result'),
@@ -214,6 +215,8 @@ const robotEl = {
 
 let robotAvailable = false
 let robotPollTimer = null
+// 收件人列表。空输入框 + 胶囊展示，提交时直接取这个数组。
+let mailRecipients = []
 
 // beijingTime 把后端给的 RFC3339 显示成北京时间，卡片里只到分钟。
 function beijingTime(raw) {
@@ -263,7 +266,8 @@ function renderRobotState(payload) {
   if (!running && payload.availableSuites) {
     suiteCheckboxes(payload.availableSuites, settings.suites || [])
     robotEl.schedule.value = settings.schedule || ''
-    robotEl.mailto.value = (settings.mailTo || []).join(', ')
+    mailRecipients = (settings.mailTo || []).slice()
+    renderMailChips()
     robotEl.enabled.checked = !!settings.enabled
     robotEl.sendmail.checked = !!settings.sendMail
   }
@@ -345,6 +349,47 @@ function renderRobotState(payload) {
   }
 }
 
+
+// ── 收件人胶囊 ──
+// 邮箱以胶囊列出，输入框负责新增：回车 / 逗号 / 分号提交，退格在空输入时删掉最后一个。
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
+function renderMailChips() {
+  robotEl.mailChips.replaceChildren()
+  mailRecipients.forEach((address, index) => {
+    const chip = el('span', 'mail-chip')
+    chip.appendChild(el('span', 'mail-chip-text', address))
+    const remove = el('button', 'mail-chip-remove', '×')
+    remove.type = 'button'
+    remove.setAttribute('aria-label', `移除 ${address}`)
+    remove.addEventListener('click', () => {
+      mailRecipients.splice(index, 1)
+      renderMailChips()
+    })
+    chip.appendChild(remove)
+    robotEl.mailChips.appendChild(chip)
+  })
+  // 已有收件人时输入框收窄，和胶囊同排；没有时占满一行。
+  robotEl.mailto.placeholder = mailRecipients.length ? '继续添加…' : '输入邮箱后回车，可加多个'
+}
+
+// commitMailInput 把输入框里的内容（可能一次粘多个，用逗号/空格分隔）加进列表。
+function commitMailInput() {
+  const raw = robotEl.mailto.value
+  if (!raw.trim()) return 0
+  const parts = raw.split(/[,;\s]+/).map((t) => t.trim()).filter(Boolean)
+  let added = 0
+  parts.forEach((address) => {
+    if (!EMAIL_RE.test(address)) return
+    if (mailRecipients.some((existing) => existing.toLowerCase() === address.toLowerCase())) return
+    mailRecipients.push(address)
+    added++
+  })
+  renderMailChips()
+  robotEl.mailto.value = ''
+  return added
+}
+
 async function loadRobot() {
   try {
     const response = await fetch('/api/robot', { cache: 'no-store' })
@@ -364,7 +409,7 @@ async function loadRobot() {
 // collectSettings 从卡片读出设置。空行与空邮箱一律丢掉。
 function collectSettings() {
   const suites = Array.from(robotEl.suites.querySelectorAll('input:checked')).map((i) => i.value)
-  const mailTo = robotEl.mailto.value.split(',').map((s) => s.trim()).filter(Boolean)
+  const mailTo = mailRecipients.slice()
   return {
     suites,
     schedule: robotEl.schedule.value,
@@ -375,6 +420,8 @@ function collectSettings() {
 }
 
 async function saveRobot() {
+  // 用户可能敲完邮箱直接点保存，先把输入框内容收进来。
+  commitMailInput()
   robotEl.save.disabled = true
   try {
     const response = await fetch('/api/robot/settings', {
@@ -423,6 +470,24 @@ if (robotEl.save) {
   robotEl.run.addEventListener('click', runRobot)
   robotEl.entry.addEventListener('click', () => selectTab('robot'))
   robotEl.back.addEventListener('click', () => selectTab(HOME_TAB.key))
+
+  // 回车或逗号提交；输入框为空时退格删掉最后一个胶囊（与常见标签输入一致）。
+  robotEl.mailto.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
+      event.preventDefault()
+      commitMailInput()
+      return
+    }
+    if (event.key === 'Backspace' && !robotEl.mailto.value && mailRecipients.length) {
+      mailRecipients.pop()
+      renderMailChips()
+    }
+  })
+  // 粘贴多个邮箱时直接解析，不用逐个回车。
+  robotEl.mailto.addEventListener('blur', () => { commitMailInput() })
+  robotEl.mailto.addEventListener('paste', () => {
+    setTimeout(commitMailInput, 0)
+  })
 }
 
 async function boot() {

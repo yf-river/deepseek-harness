@@ -73,7 +73,7 @@
         </span>
         <span class="site-card-desc" id="robot-entry-desc">每天把选中的主流程依次跑一遍，结果发到指定邮箱。</span>
         <span class="site-card-tags">
-          <span class="tag">定时巡检</span><span class="tag">结果发邮件</span><span class="tag">可手动执行</span>
+          <span class="tag">每天执行</span><span class="tag">结果发邮件</span>
         </span>
         <span class="site-card-foot">
           <span class="site-url" id="robot-entry-meta">尚未执行</span>
@@ -109,8 +109,12 @@
         </div>
         <div class="robot-row">
           <dt>收件人</dt>
-          <dd><input id="robot-mailto" type="text" spellcheck="false" aria-label="收件人邮箱"
-                placeholder="yunfeihu@tencent.com"></dd>
+          <dd>
+            <!-- 多收件人：已添加的邮箱以胶囊显示，输入框回车或逗号继续添加，支持群发。 -->
+            <div class="mail-chips" id="robot-mailto-chips"></div>
+            <input id="robot-mailto" type="text" spellcheck="false" autocomplete="off"
+                   aria-label="添加收件人邮箱" placeholder="输入邮箱后回车，可加多个">
+          </dd>
         </div>
         <div class="robot-row">
           <dt>启用</dt>
