@@ -14,7 +14,7 @@ export const PROTECTED_PLUGINS: ReadonlySet<string> = new Set([
   '@deepseek-ai/dsh-api-remotes', '@deepseek-ai/dsh-api-remote-access',
   '@deepseek-ai/cordis-plugin-timer', '@deepseek-ai/dsh-client-connection',
   '@deepseek-ai/dsh-host-frontend-static', '@deepseek-ai/dsh-tools',
-  '@deepseek-ai/dsh-hmr',
+  '@deepseek-ai/dsh-hmr', 'chainweaver-runtime',
 ])
 
 /**

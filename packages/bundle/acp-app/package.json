@@ -36,12 +36,12 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-acp": "workspace:*",
-    "@deepseek-ai/dsh-cmdline": "workspace:*",
+    "@deepseek-ai/dsh-acp": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-cmdline": "0.2.2-rc.1",
     "commander": "^15.0.0"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:~"
+    "@deepseek-ai/cordis": "4.1.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis-plugin-include": "workspace:~",

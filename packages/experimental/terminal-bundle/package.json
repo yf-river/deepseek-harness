@@ -39,12 +39,12 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-tool-terminal": "workspace:*",
-    "@deepseek-ai/dsh-terminal": "workspace:*",
-    "@deepseek-ai/dsh-terminal-bash": "workspace:*"
+    "@deepseek-ai/dsh-tool-terminal": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-terminal": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-terminal-bash": "0.2.2-rc.1"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:~"
+    "@deepseek-ai/cordis": "4.1.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~"

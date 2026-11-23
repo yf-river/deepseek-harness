@@ -1015,3 +1015,13 @@ it('uses application-owned executable arguments and environment for package oper
     [...runtime.args, 'view', 'example', 'name', 'version', 'description', 'dsh', '--json', '--config.fetch-retries=0'],
     expect.objectContaining({ env: expect.objectContaining(runtime.env) as unknown }))
 })
+
+it.each(['chainweaver-bundle', 'chainweaver-runtime', 'dsh-superagent'])('refuses removing built-in %s before package operations', async name => {
+  const { context, pnpm } = fixture()
+  let mutated = false
+  pnpm.mutate = () => { mutated = true }
+  await expect(runProfilePnpm({ ...context, profile: 'chainweaver' }, ['remove', name], {
+    execution: 'service', outputBytes: 8192,
+  })).rejects.toThrow(/built-in/)
+  expect(mutated).toBe(false)
+})

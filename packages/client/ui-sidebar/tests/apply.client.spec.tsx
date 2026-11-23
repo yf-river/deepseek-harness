@@ -35,6 +35,7 @@ async function bench(declare = true) {
   await ctx.plugin(SlotRegistry).await()
   const layout = { toggleSidebar: vi.fn(), selectPanel: vi.fn() }
   const uiWorkspace = { startSession: vi.fn() }
+  ctx.provide('configForms', { get: () => createSnapshotStore({ value: { showBrand: true } }) } as never)
   ctx.provide('shortcuts', { catalog: createSnapshotStore([]) } as never)
   ctx.provide('layout', layout)
   ctx.provide('uiWorkspace', uiWorkspace as never)
@@ -54,12 +55,12 @@ async function bench(declare = true) {
 }
 
 describe('ui-sidebar apply', () => {
-  it('keeps the host Loader entry inert', () => {
-    expect(hostApply).not.toThrow()
+  it('allows mounting without the optional host settings service', () => {
+    expect(() => hostApply(new Context())).not.toThrow()
   })
 
   it('declares only the services it uses', () => {
-    expect(inject).toEqual(['slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts'])
+    expect(inject).toEqual(['slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts', 'configForms'])
   })
 
   it('registers the shell and declares its child seats', async () => {

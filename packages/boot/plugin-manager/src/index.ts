@@ -469,7 +469,8 @@ export class PluginManager extends TypertRemoteService {
       const actual = [...this.ctx.loader.entries()].find(row => row.id === entry.entryId)
       const candidates = rows.filter(row => row.id === actual?.options.id)
       const candidate = candidates[0]
-      if (PROTECTED_PLUGINS.has(entry.moduleName) || entry.entryId === this.ownerEntryId) {
+      if (PROTECTED_PLUGINS.has(entry.moduleName) || entry.entryId === this.ownerEntryId
+        || (this.profile.name === 'chainweaver' && ['chainweaver-runtime', 'dsh-superagent'].includes(entry.moduleName))) {
         return { ...entry, readOnlyReason: 'management-required' as const }
       }
       if (candidate === undefined || candidates.length > 1 || candidate.name !== entry.moduleName
@@ -1196,6 +1197,7 @@ export class PluginManager extends TypertRemoteService {
   }
 
   private protectsManager(name: string): boolean {
+    if (this.profile.name === 'chainweaver' && name === 'chainweaver-bundle') return true
     if (this.managementBundles.has(name)) return true
     let rows: EntryOptions[]
     try { rows = this.bundleRows(name) } catch (_error) {

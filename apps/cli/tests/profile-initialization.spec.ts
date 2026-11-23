@@ -209,7 +209,7 @@ describe('initializeProfileFromDefault', () => {
       const before = readFileSync(join(dir, 'package.json'))
 
       expect(() => {
-        initializeProfileFromDefault('Web', 'headless', home)
+        initializeProfileFromDefault('Web', 'sdk', home)
       }).toThrow('profile "Web" names shipped profile "web"')
       expect(readFileSync(join(dir, 'package.json'))).toEqual(before)
     })

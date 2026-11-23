@@ -43,6 +43,7 @@ function makeHeaderProps(): HeaderLeadingControlsProps {
     useContextMenu: contextMenuHook(),
     useSessions: neverHook, useSessionStatus, useSessionRetainInfo: neverHook,
     usePanelInfo, useResource, useWorkspaces: neverHook, ...allowAllAccess,
+    useBrandVisible: selector => selector(true),
     usePanels: selector => selector([]), useShortcuts: selector => selector([]),
     useEntryPins: selector => selector([]), useEntryActions: selector => selector(false),
     selectPanel: vi.fn(), setPinned: vi.fn(), toggleSidebar: vi.fn(),
@@ -50,8 +51,9 @@ function makeHeaderProps(): HeaderLeadingControlsProps {
   }
 }
 
-function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts = [], panels = [], content }: {
+function mountShell({ collapsed = false, showBrand = true, width = 300, drawer = false, shortcuts = [], panels = [], content }: {
   collapsed?: boolean
+  showBrand?: boolean
   width?: number
   drawer?: boolean
   shortcuts?: readonly ShortcutCatalogEntry[]
@@ -67,9 +69,10 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts 
   let footerActionOwner: SidebarFooterActionOwnerProps | undefined
   const brandMark = <span data-testid="custom-brand-mark">M</span>
   const brandName = <span data-testid="custom-brand-name">Custom Brand</span>
-  let current = { collapsed, width, drawer }
+  let current = { collapsed, showBrand, width, drawer }
   const root = () => (
     <SidebarRoot
+      useBrandVisible={selector => selector(current.showBrand)}
       drawer={current.drawer}
       collapsed={current.collapsed} width={current.width}
       useSessions={neverHook} useSessionStatus={useSessionStatus} useSessionRetainInfo={neverHook}
@@ -132,6 +135,18 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts 
 }
 
 describe('SidebarRoot shell', () => {
+  it('hides branding in expanded and collapsed sidebars while keeping navigation usable', () => {
+    const shell = mountShell({ showBrand: false })
+    expect(screen.queryByTestId('custom-brand-mark')).toBeNull()
+    expect(screen.queryByTestId('custom-brand-name')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: t('session.new.label') }))
+    expect(shell.startSession).toHaveBeenCalledOnce()
+    shell.rerender({ collapsed: true })
+    expect(screen.queryByTestId('custom-brand-mark')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: t('toggle.open') }))
+    expect(shell.toggleSidebar).toHaveBeenCalledOnce()
+  })
+
   it('puts navigation and workspaces in one viewport without scrolling primary controls or the footer', () => {
     mountShell({ panels: [{ id: 'notes' as SidebarPanelMetadata['id'], order: 1, label: 'Notes' }] })
     const viewport = document.querySelector('[data-sidebar-scrollport]')!
@@ -173,7 +188,7 @@ describe('SidebarRoot shell', () => {
     expect(Array.from(expanded.querySelectorAll('kbd'), key => key.textContent)).toEqual(['Ctrl', 'N'])
     cleanup()
     document.documentElement.dataset.platform = 'darwin'
-    render(<HeaderLeadingControls toggleSidebar={vi.fn()} startSession={vi.fn()} selectPanel={vi.fn()} trackEntryClick={vi.fn()} t={t}
+    render(<HeaderLeadingControls useBrandVisible={select => select(true)} toggleSidebar={vi.fn()} startSession={vi.fn()} selectPanel={vi.fn()} trackEntryClick={vi.fn()} t={t}
       usePanelInfo={neverHook} useSessions={neverHook} useSessionStatus={neverHook}
       useSessionRetainInfo={neverHook} useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
@@ -218,6 +233,7 @@ describe('SidebarRoot shell', () => {
     const startSession = vi.fn()
     const useRemoteAccess = vi.fn((action: string) => action !== 'session/create')
     render(<SidebarRoot
+      useBrandVisible={selector => selector(true)}
       collapsed={false} width={300} drawer={false}
       useSessions={neverHook} useSessionStatus={useSessionStatus} useSessionRetainInfo={neverHook}
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
@@ -250,6 +266,7 @@ describe('SidebarRoot shell', () => {
     vi.stubEnv('DSH_CLIENT_GIT_DIRTY', 'true')
     vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3-rc.4')
     const { container } = render(<SidebarRoot
+      useBrandVisible={selector => selector(true)}
       drawer={false}
       collapsed={false} width={300}
       useSessions={neverHook} useSessionStatus={useSessionStatus} useSessionRetainInfo={neverHook}
@@ -275,6 +292,7 @@ describe('SidebarRoot shell', () => {
   ])('omits unavailable build-version suffixes from %j', (environment, expected) => {
     for (const [name, value] of Object.entries(environment)) vi.stubEnv(name, value)
     render(<SidebarRoot
+      useBrandVisible={selector => selector(true)}
       drawer={false}
       collapsed={false} width={300}
       useSessions={neverHook} useSessionStatus={useSessionStatus} useSessionRetainInfo={neverHook}
@@ -305,6 +323,7 @@ describe('SidebarRoot shell', () => {
     const startSession = vi.fn()
     const trackEntryClick = vi.fn<SidebarRootComponentProps['trackEntryClick']>()
     render(<SidebarRoot
+      useBrandVisible={selector => selector(true)}
       collapsed={false} width={300} drawer={false}
       useSessions={neverHook} useSessionStatus={useSessionStatus} useSessionRetainInfo={neverHook}
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
@@ -356,6 +375,7 @@ describe('SidebarRoot shell', () => {
 
   it('retains the local-build fallback without complete build metadata', () => {
     render(<SidebarRoot
+      useBrandVisible={selector => selector(true)}
       drawer={false}
       collapsed={false} width={300}
       useSessions={neverHook} useSessionStatus={useSessionStatus} useSessionRetainInfo={neverHook}
@@ -421,6 +441,7 @@ describe('SidebarRoot shell', () => {
   it('shows only the badge bubble while the rail badge is hovered inside the toggle', () => {
     vi.useFakeTimers()
     render(<SidebarRoot
+      useBrandVisible={selector => selector(true)}
       drawer={false}
       collapsed width={56}
       useSessions={neverHook} useSessionStatus={useSessionStatus} useSessionRetainInfo={neverHook}

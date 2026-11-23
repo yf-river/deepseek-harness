@@ -81,5 +81,25 @@ export function readProfilePatches(binName: string, context: ProfileContext, ini
   const telemetryPatch = resolveTelemetryPatch(context.telemetryDisabledEnv,
     composeEntries([patches]).some(row => row.id === TELEMETRY_ROW_ID))
   if (telemetryPatch !== undefined) patches.push(telemetryPatch)
+  assertRequiredProfileRows(context.name, patches)
   return patches
+}
+
+/** 校验 ChainWeaver 的必选运行组件，适用于启动和配置重载。
+ * @param profile - 当前 profile 名称。
+ * @param patches - 合成后的完整 patch 列表。
+ */
+export function assertRequiredProfileRows(profile: string, patches: PatchOptions[]): void {
+  if (profile !== 'chainweaver') return
+  const rows = composeEntries([patches])
+  for (const [id, name] of [['chainweaver-runtime', 'chainweaver-runtime'], ['dsh-superagent', 'dsh-superagent']] as const) {
+    const row = rows.find(row => row.id === id)
+    if (row?.name !== name || (row.disabled !== undefined && row.disabled !== false)) {
+      throw new Error(`ChainWeaver required component ${id} cannot be removed, replaced or disabled`)
+    }
+    if (id === 'dsh-superagent' && row.config && typeof row.config === 'object'
+      && 'clientOnly' in row.config && row.config.clientOnly !== false) {
+      throw new Error('ChainWeaver requires the Superagent server runtime')
+    }
+  }
 }

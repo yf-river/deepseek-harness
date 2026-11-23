@@ -34,11 +34,11 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@deepseek-ai/dsh-client-ui-plugin-market": "workspace:*",
-    "@deepseek-ai/dsh-plugin-market": "workspace:*"
+    "@deepseek-ai/dsh-client-ui-plugin-market": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-plugin-market": "0.2.2-rc.1"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:~"
+    "@deepseek-ai/cordis": "4.1.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~"

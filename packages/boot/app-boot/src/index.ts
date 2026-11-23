@@ -1,3 +1,4 @@
+import { assertRequiredProfileRows } from './profile-context.ts'
 /**
  * Shared boot glue for `dsh` profiles, including the CLI packaged by the Python runtime wheel: load the gitignored
  * `.env`, install the fail-loud Loader guards, resolve the config path (snapshot-aware), load the
@@ -327,6 +328,7 @@ async function recompose(
   ctx: Context, patches: PatchOptions[], binName: string, options: ProfileRecompositionOptions, withResolution: boolean,
 ): Promise<ProfileRecomposition> {
   const { requiredIds = [], running = [] } = options
+  assertRequiredProfileRows(ctx.get('profileContext')?.name ?? '', patches)
   let applying = false
   // The rows stopped first, which a failure before the generation applies puts back.
   let stopped: StoppedRow[] = []

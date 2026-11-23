@@ -20,13 +20,12 @@ describe('Official on-demand catalog', () => {
 })
 
 describe('Shipped profile templates', () => {
-  it('stack each mode bundle on base except the standalone minimal SDK', () => {
+  it('stack each shipped mode bundle on base', () => {
     expect(PROFILE_TEMPLATES).toEqual({
+      chainweaver: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'chainweaver-bundle'] },
       acp: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-acp-app'] },
       web: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] },
-      headless: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless'] },
       sdk: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-sdk-app'] },
-      'sdk-minimal': { bundles: ['@deepseek-ai/dsh-sdk-minimal'] },
     })
   })
 })

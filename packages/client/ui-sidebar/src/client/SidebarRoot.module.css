@@ -819,3 +819,8 @@
     animation: none;
   }
 }
+
+/* 无品牌的收起侧栏直接显示展开按钮。 */
+.collapsed .unbrandedToggle .panelIcon {
+  display: inline;
+}

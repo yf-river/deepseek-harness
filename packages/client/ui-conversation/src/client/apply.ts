@@ -340,6 +340,11 @@ export function apply(ctx: Context, config: Config = Config({})): void {
     },
   }, ConversationRoot)
 
+  const branding = ctx.configForms.get<{ showHeroBrand: boolean }>(CONVERSATION_SETTINGS_NAMESPACE)
+  const homeBrandVisible = {
+    getSnapshot: () => branding.getSnapshot().value?.showHeroBrand ?? false,
+    subscribe: (listener: () => void) => branding.subscribe(listener),
+  }
   const registerConversationContent = () => slots.registerFactory({
     name: 'conversation.content',
     scope: 'session-maybe',
@@ -361,6 +366,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
     },
     inject: (sessionId: SessionId | undefined): ConversationInjected => ({
       hooks: {
+        homeBrandVisible,
         composerBlock: sessionId === undefined ? ABSENT_BLOCK : composerBlocks.storeFor(sessionId),
       },
       selectWorkspace: workspaceId => workspaceNavigation.openWorkspace(workspaceId, (nextId) => {

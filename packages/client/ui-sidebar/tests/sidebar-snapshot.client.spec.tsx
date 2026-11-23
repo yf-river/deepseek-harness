@@ -40,6 +40,7 @@ afterEach(() => {
  */
 async function bench(options: { locale?: 'en' } = {}) {
   const runtime = await SlotTestRuntime.create()
+  runtime.ctx.provide('configForms', { get: () => createSnapshotStore({ value: { showBrand: true } }) } as never)
   runtime.ctx.provide('shortcuts', { catalog: createSnapshotStore([]) } as never)
   runtime.ctx.provide('layout', { toggleSidebar: vi.fn() })
   runtime.ctx.provide('uiWorkspace', { startSession: vi.fn() } as never)

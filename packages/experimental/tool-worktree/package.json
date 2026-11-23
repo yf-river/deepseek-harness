@@ -33,9 +33,9 @@
     "directory": "packages/experimental/tool-worktree"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:~",
-    "@deepseek-ai/dsh-tools": "workspace:*",
-    "@deepseek-ai/dsh-experimental-worktree": "workspace:*"
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-experimental-worktree": "0.2.2-rc.1"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
@@ -66,6 +66,6 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-experimental-worktree": "workspace:*"
+    "@deepseek-ai/dsh-experimental-worktree": "0.2.2-rc.1"
   }
 }

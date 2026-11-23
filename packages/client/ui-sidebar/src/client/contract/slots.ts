@@ -214,6 +214,8 @@ export type SidebarRootInjected = {
   trackEntryClick: (attributes: ProductEventMap['sidebar_menu_click']) => void
   /** Private reactive sources bound to framework selector hooks. */
   hooks: {
+    /** 宿主配置同步后的品牌可见性。 */
+    brandVisible: ObservableSnapshot<boolean>
     panels: ObservableSnapshot<readonly SidebarPanelMetadata[]>
     shortcuts: ObservableSnapshot<readonly ShortcutCatalogEntry[]>
     /** Ids of unpinned panel launchers held in memory until plugin reload. */

@@ -150,6 +150,7 @@ function PanelMoreMenu({ wide, label, entries, onOpen, onPinnedChange, trackEntr
  */
 export function SidebarRoot({
   collapsed,
+  useBrandVisible,
   width,
   drawer,
   startSession,
@@ -167,6 +168,7 @@ export function SidebarRoot({
   renderSlot,
   renderFactorySlot,
 }: SidebarRootComponentProps) {
+  const showBrand = useBrandVisible(visible => visible)
   const panels = usePanels(snapshot => snapshot)
   const unpinned = useEntryPins(ids => ids)
   const activePanelId = usePanelInfo(info => info.activePanelId)
@@ -287,12 +289,12 @@ export function SidebarRoot({
         data-sidebar-toggle
         data-modal-autofocus={drawer || undefined}
         type="button"
-        className={clsx(css.iconButton, css.toggle)}
+        className={clsx(css.iconButton, css.toggle, !showBrand && css.unbrandedToggle)}
         aria-label={toggleLabel}
         aria-keyshortcuts={shortcut?.aria}
         onClick={() => { toggleSidebar() }}
       >
-        {!wide && !windowsTitlebar && (
+        {showBrand && !wide && !windowsTitlebar && (
           <span className={css.railMark} aria-hidden="true">
             {renderSlot('sidebar.brand.mark', { size: 24 }, { fallback: <FishLogo size={24} /> })}
           </span>
@@ -334,7 +336,7 @@ export function SidebarRoot({
             (a button would subtract itself through the global no-drag rule);
             the collapsed rail's logo is the expand toggle below instead.
             Mouse clicks on the local-build fallbacks copy the version instead. */}
-        {wide && (() => {
+        {showBrand && wide && (() => {
           const identity = (
             <span className={css.brandIdentity} aria-hidden="true">
               <span className={css.brandMark}>

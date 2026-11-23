@@ -683,6 +683,9 @@ export function loadProfileDirectory(
 ): Profile {
   const manifest = dropRetiredBundles(dir, readProfileManifest(binName, dir))
   const bundles = manifest.dsh?.profile?.bundles ?? []
+  if (basename(dir) === 'chainweaver' && !bundles.includes('chainweaver-bundle')) {
+    throw new Error('chainweaver profile requires the built-in chainweaver-bundle')
+  }
   const layers: ProfileLayer[] = []
   const skippedBundles: SkippedBundle[] = []
   const exemptions = bundles.length === 0 ? {} : readProfileVersionExemptions(dir)

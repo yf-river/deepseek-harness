@@ -31,6 +31,7 @@ import {
   type Profile,
   type RuntimeResolution,
 } from '../src/index.ts'
+import { assertRequiredProfileRows } from '../src/profile-context.ts'
 import { PROFILE_TEMPLATES } from '@deepseek-ai/dsh-official-bundles'
 import { installRuntimeInterception } from '../src/profile-resolution/resolver.ts'
 
@@ -364,7 +365,7 @@ describe('loadProfile', () => {
       .toEqual([...PROFILE_TEMPLATES.web?.bundles ?? []])
   })
 
-  it('normalizes only the exact installation-owned headless bundle tuple', () => {
+  it('preserves existing headless profile bundles after template removal', () => {
     const anchor = stageInstallation({
       '@deepseek-ai/dsh-base': { patch: '[]\n' },
       '@deepseek-ai/dsh-web-app': { patch: '[]\n' },
@@ -380,7 +381,7 @@ describe('loadProfile', () => {
     writeProfileManifest(stock, retiredManifest)
     loadProfile('t', 'headless', anchor, home)
     expect(readProfileManifest('t', stock).dsh?.profile).toEqual({
-      bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless'],
+      bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-headless'],
     })
 
     const customHome = tmp()
@@ -818,5 +819,30 @@ describe('removeLinkProjections', () => {
     removeLinkProjections(profile)
     removeLinkProjections(join(home, 'profiles', 'absent'))
     expect(existsSync(join(profile, 'node_modules', 'my-plugin', 'package.json'))).toBe(true)
+  })
+})
+
+
+describe('ChainWeaver required bundle', () => {
+  it('rejects a chainweaver profile without its product bundle', async () => {
+    const dir = join(tmp(), 'chainweaver')
+    mkdirSync(dir)
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({name: 'chainweaver', dsh: {profile: {bundles: []}} }))
+    expect(() => loadProfileDirectory('dsh', dir, join(dir, 'package.json'))).toThrow(/chainweaver-bundle/)
+  })
+})
+
+
+describe('ChainWeaver required rows', () => {
+  const rows = [{id:'chainweaver-runtime',name:'chainweaver-runtime'},{id:'dsh-superagent',name:'dsh-superagent'}]
+  it('allows the required composition and leaves other profiles independent', () => {
+    expect(() => assertRequiredProfileRows('chainweaver', [{insert:rows}])).not.toThrow()
+    expect(() => assertRequiredProfileRows('web', [])).not.toThrow()
+  })
+  it('rejects removal, disable and client-only configuration', () => {
+    expect(() => assertRequiredProfileRows('chainweaver', [])).toThrow(/required component/)
+    for (const row of [{id:'dsh-superagent',disabled:true},{id:'dsh-superagent',config:{clientOnly:true}}]) {
+      expect(() => assertRequiredProfileRows('chainweaver', [{insert:rows},row])).toThrow(/ChainWeaver/)
+    }
   })
 })

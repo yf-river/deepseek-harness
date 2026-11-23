@@ -40,11 +40,11 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-tool-ralph": "workspace:*",
-    "@deepseek-ai/dsh-workflow-ptc": "workspace:*"
+    "@deepseek-ai/dsh-tool-ralph": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-workflow-ptc": "0.2.2-rc.1"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:~"
+    "@deepseek-ai/cordis": "4.1.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~"

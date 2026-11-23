@@ -296,6 +296,10 @@ function bundleComponentManifests(manifest: ProfileManifest, dir: string, anchor
 export async function runProfilePnpm(
   context: PackageOperationContext, args: readonly string[], options: PackageOperationOptions,
 ): Promise<PackageResult> {
+  if (context.profile === 'chainweaver' && ['remove', 'rm', 'uninstall', 'unlink'].includes(args[0] ?? '')
+    && args.slice(1).some(name => ['chainweaver-bundle', 'chainweaver-runtime', 'dsh-superagent'].includes(name))) {
+    throw new Error('ChainWeaver built-in product capabilities cannot be removed')
+  }
   const dir = context.dir ?? resolveProfileDir(context.profile, context.home)
   // Before any profile file is read: a recorded run that is still active may be rewriting them.
   const active = await activeRecordedRun(dir)

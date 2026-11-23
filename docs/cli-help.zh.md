@@ -14,9 +14,7 @@
 - [`dsh`](#dsh)
 - [`dsh plugin`](#dsh-plugin)
 - [`dsh acp`](#dsh-acp)
-- [`dsh headless`](#dsh-headless)
 - [`dsh sdk`](#dsh-sdk)
-- [`dsh sdk-minimal`](#dsh-sdk-minimal)
 - [`dsh web`](#dsh-web)
 
 <a id="dsh"></a>
@@ -52,7 +50,6 @@ Examples:
   dsh web                                   boot the web profile (same as: dsh --profile web)
   dsh rescue --from-default-profile web
                                             recreate rescue from the shipped web template, then boot it
-  dsh headless "run the tests"              answer one task, print the result, and exit
   dsh tui --patch ./extra.yml               boot a custom profile with one extra overlay
   dsh tui --resume <session>                arguments after the launcher flags reach the app
   dsh web --help                            the web app's own flags and help
@@ -99,43 +96,6 @@ Example:
 
 ```
 
-<a id="dsh-headless"></a>
-## `dsh headless`
-
-调用方式: `dsh headless --help`, `dsh --profile headless --help`
-
-```text
-Usage: dsh --profile headless [options] [task...]
-
-Answer one task and exit; the answer goes to stdout and diagnostics to stderr.
-
-Arguments:
-  task                        the task text; multiple words are joined by
-                              spaces, and `-` reads stdin
-
-Options:
-  --json                      write newline-delimited run events to stdout
-                              instead of the final message
-  --session-id <id>           adopt the persisted Session with this id; an
-                              unknown id is an error
-  --permission-mode <preset>  select a configured permission preset for this
-                              task, including on resume
-  --approval-policy <policy>  set approval behavior after selecting the
-                              permission preset (choices: "ask", "never")
-  --add-dir <path>            allow an additional physical absolute directory
-                              under workspace-write (repeatable)
-  -h, --help                  show this help
-
-Examples:
-  dsh --profile headless "run the tests"          answer one task and exit
-  echo "run the tests" | dsh --profile headless   read the task from stdin
-  dsh --profile headless --json "run the tests"   emit machine-readable run events
-  dsh --profile headless --session-id session-… "continue"   resume an existing Session
-  dsh --profile headless --permission-mode workspace-write --add-dir /repo/.git "commit the fix"
-                                                        grant shared Git metadata for this task
-
-```
-
 <a id="dsh-sdk"></a>
 ## `dsh sdk`
 
@@ -151,24 +111,6 @@ Options:
 
 Example:
   dsh --profile sdk     serve one SDK runtime until its client disconnects
-
-```
-
-<a id="dsh-sdk-minimal"></a>
-## `dsh sdk-minimal`
-
-调用方式: `dsh sdk-minimal --help`, `dsh --profile sdk-minimal --help`
-
-```text
-Usage: dsh --profile sdk-minimal [options]
-
-Serve DeepSeek Harness SDK clients over stdio JSON-RPC.
-
-Options:
-  -h, --help  show this help
-
-Example:
-  dsh --profile sdk-minimal     serve one SDK runtime until its client disconnects
 
 ```
 

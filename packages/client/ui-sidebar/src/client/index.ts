@@ -1,5 +1,6 @@
 /** Registers the sidebar shell and global panel navigation. */
 import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
@@ -45,7 +46,7 @@ interface WorkspaceNavigation {
 }
 
 /** Services required by the sidebar plugin. */
-export const inject = ['slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts']
+export const inject = ['slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts', 'configForms']
 
 /** Registers the sidebar shell and its service callbacks.
  * @param ctx - Client root context.
@@ -75,6 +76,11 @@ export function apply(ctx: ClientContext): void {
     subscribe: (listener: () => void) => ctx.slots.subscribe('sidebar.panellist.actions', listener),
   }
 
+  const branding = ctx.configForms.get<{ showBrand: boolean }>('ui-sidebar')
+  const brandVisible = {
+    getSnapshot: () => branding.getSnapshot().value?.showBrand ?? false,
+    subscribe: (listener: () => void) => branding.subscribe(listener),
+  }
   const injectProps = (): SidebarRootInjected => ({
     // The shell's New Session button rides the Workspace UI's shared action
     // (current Session Workspace, then recent Workspace).
@@ -83,7 +89,7 @@ export function apply(ctx: ClientContext): void {
     selectPanel: (id) => { ctx.layout.selectPanel(id) },
     setPinned: panelPins.setPinned,
     trackEntryClick: (attributes) => { ctx.get('productAnalytics')?.track('sidebar_menu_click', attributes) },
-    hooks: { panels, shortcuts: ctx.shortcuts.catalog, entryPins: panelPins.unpinned, entryActions },
+    hooks: { brandVisible, panels, shortcuts: ctx.shortcuts.catalog, entryPins: panelPins.unpinned, entryActions },
   })
   ctx.slots.inject('sidebar', function* () {
     yield ctx.slots.registerFactory({

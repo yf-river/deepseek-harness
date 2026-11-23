@@ -39,10 +39,10 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-skill-badge": "workspace:*"
+    "@deepseek-ai/dsh-skill-badge": "0.2.2-rc.1"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:~"
+    "@deepseek-ai/cordis": "4.1.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~"

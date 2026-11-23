@@ -39,10 +39,10 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-session-title-all-prompts-llm": "workspace:*"
+    "@deepseek-ai/dsh-session-title-all-prompts-llm": "0.2.2-rc.1"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:~"
+    "@deepseek-ai/cordis": "4.1.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~"

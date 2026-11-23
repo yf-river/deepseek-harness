@@ -15,13 +15,16 @@ export {
 
 /** Runtime preferences projected to the browser. */
 export interface Config {
+  /** 是否显示新会话首页的品牌图标与标题。 */
+  showHeroBrand: Volatile<boolean>
   /** Enter key behavior while a turn is running. */
   busyEnter: Volatile<BusyEnterBehavior>
 }
 
 /** Live preferences projected to the browser. */
 export const Config = z.object({
-  [BUSY_ENTER_FIELD]: ConversationSettingsFields[BUSY_ENTER_FIELD].volatile(),
+  showHeroBrand: z.boolean().default(true).volatile(),
+  busyEnter: ConversationSettingsFields[BUSY_ENTER_FIELD].volatile(),
 })
 
 /** Register browser conversation preferences.

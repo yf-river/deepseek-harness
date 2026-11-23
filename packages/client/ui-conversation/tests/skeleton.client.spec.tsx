@@ -128,6 +128,7 @@ function mount(
     /** Explicit undefined exercises the shell before a Session is selected. */
     sessionId?: SessionId | undefined
     /** When true, mimic overlay:true chain siblings (hidden fallback + takeover). */
+    showHeroBrand?: boolean
     overlayTakeover?: boolean
     /** The session list summary's `blank` flag — independent of the snapshot's. */
     summaryBlank?: boolean
@@ -376,6 +377,7 @@ function mount(
       renderSlotChain,
       renderFactorySlot,
       selectWorkspace: retargetWorkspace,
+      useHomeBrandVisible: select => select(options.showHeroBrand ?? true),
       t,
     }
     const useFactorySlot = ((name: string, fallback: (props: never) => ReactNode) => (
@@ -418,6 +420,17 @@ function mount(
     rerender: () => { view.rerender(<ConversationMainPanel {...props} />) },
   }
 }
+
+describe('Product home branding', () => {
+  it('hides the home branding while leaving the composer and workspace picker usable', () => {
+    const b = mount(sessionSnapshotOf(), undefined, undefined, { sessionId: undefined, showHeroBrand: false })
+    expect(b.view.queryByText('探索未至之境')).toBeNull()
+    expect(b.slotCalls).not.toContain('conversation.hero.brand.mark')
+    expect(b.view.getByRole('textbox')).toBeTruthy()
+    fireEvent.click(b.view.getByRole('button', { name: '选择工作区' }))
+    expect(b.slotCalls).toContain('conversation.hero.workspace')
+  })
+})
 
 describe('Hero chrome', () => {
   it('renders the English preview badge through the hero locale seat', () => {
