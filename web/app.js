@@ -274,20 +274,20 @@ function renderEnvPool(pool) {
 
     const head = el('div', 'env-row-head')
     head.appendChild(el('span', 'env-name', env.name))
-    // 已租用优先于健康状态：占用中的环境即便健康也不该被当成可分配。
-    let tone = 'status status-up'
+    // 状态用带圆点的小徽标，独立占位在名称右侧；名称 flex 撑开，两者之间自然留白。
+    let state = 'ready'
     let text = '就绪'
     if (env.status === 'restoring') {
-      tone = 'status status-unknown'
+      state = 'run'
       text = '释放中'
     } else if (env.lease) {
-      tone = 'status status-down'
+      state = 'leased'
       text = '已租用'
     } else if (!env.ready) {
-      tone = 'status status-down'
+      state = 'error'
       text = '异常'
     }
-    head.appendChild(el('span', tone, text))
+    head.appendChild(envPill(state, text))
     row.appendChild(head)
 
     const meta = el('div', 'env-row-meta')
@@ -320,18 +320,18 @@ function renderEnvPool(pool) {
       ? `${pool.unhealthy} 个环境异常`
       : `${pool.idle || 0} 个空闲 · ${pool.leased || 0} 个已租用`
   }
-  renderOperations(pool.recentOperations)
+  renderOperations(pool)
 }
 
 const OP_KIND_TEXT = { deploy: '部署', free: '释放', destroy: '销毁' }
 const OP_STATUS_TEXT = { queued: '排队中', running: '执行中', succeeded: '成功', failed: '失败' }
 
 // renderOperations 渲染 cwe 的部署/释放任务记录，最新的在前。
-function renderOperations(operations) {
+function renderOperations(pool) {
   if (!envEl.opsList) return
-  const items = operations || []
+  const items = pool.recentOperations || []
   envEl.opsEmpty.hidden = items.length > 0
-  envEl.opsCount.textContent = items.length ? `最近 ${items.length} 条` : ''
+  renderPager('env-ops', pool.operationsTotal || 0, pool.operationsPage || 1)
   envEl.opsList.replaceChildren()
 
   items.forEach((op) => {
@@ -340,10 +340,7 @@ function renderOperations(operations) {
     const head = el('div', 'env-op-head')
     head.appendChild(el('span', 'env-op-kind', OP_KIND_TEXT[op.kind] || op.kind || '-'))
     head.appendChild(el('span', 'env-op-env', op.environment || '-'))
-    const tone = op.status === 'succeeded' ? 'is-pass'
-      : op.status === 'failed' ? 'is-fail'
-      : op.status === 'running' ? 'is-running' : 'is-none'
-    head.appendChild(el('span', `verdict ${tone}`, OP_STATUS_TEXT[op.status] || op.status || '-'))
+    head.appendChild(opPill(op.status))
     head.appendChild(el('span', 'env-op-time', beijingTime(op.started_at || op.created_at) || '-'))
     row.appendChild(head)
 
@@ -354,6 +351,60 @@ function renderOperations(operations) {
   })
 }
 
+
+// renderPager 统一渲染分页控件。prefix 对应 env-ops / history 两组 id。
+// 只有一页时隐藏控件，不占位。
+function renderPager(prefix, total, page) {
+  const box = document.getElementById(prefix + '-pager')
+  if (!box) return
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  box.hidden = total === 0
+  const info = document.getElementById(prefix + '-count')
+  if (info) info.textContent = `${total} 条`
+  const label = document.getElementById(prefix + '-page')
+  if (label) label.textContent = `${page} / ${pages}`
+  const prev = document.getElementById(prefix + '-prev')
+  const next = document.getElementById(prefix + '-next')
+  if (prev) prev.disabled = page <= 1
+  if (next) next.disabled = page >= pages
+  // 只有一页时整块不显示，避免一个无意义的 1/1
+  box.hidden = pages <= 1
+}
+
+// bindPager 把页码变化交给各页自己的加载函数。
+function bindPager(prefix, onChange) {
+  const prev = document.getElementById(prefix + '-prev')
+  const next = document.getElementById(prefix + '-next')
+  if (prev) prev.addEventListener('click', () => onChange(-1))
+  if (next) next.addEventListener('click', () => onChange(1))
+}
+
+
+// envPill / opPill 是环境与操作记录的状态徽标：一个圆点 + 文字，
+// 比原来的纯色块更轻，也能和名称、时间拉出稳定的间距。
+function dotPill(tone, text, title) {
+  const pill = el('span', `pill is-${tone}`)
+  pill.appendChild(el('span', 'pill-dot'))
+  pill.appendChild(el('span', 'pill-text', text))
+  if (title) pill.title = title
+  return pill
+}
+
+function envPill(state, text) {
+  // ready 绿、leased 琥珀（被占但不是故障）、run 蓝（处理中）、error 红
+  const tone = state === 'ready' ? 'ok'
+    : state === 'leased' ? 'busy'
+    : state === 'run' ? 'run' : 'bad'
+  return dotPill(tone, text)
+}
+
+function opPill(status) {
+  const tone = status === 'succeeded' ? 'ok'
+    : status === 'failed' ? 'bad'
+    : status === 'running' ? 'run' : 'idle'
+  return dotPill(tone, OP_STATUS_TEXT[status] || status || '-')
+}
+
 function shortID(value) {
   return value && value.length > 8 ? value.slice(0, 8) : value || ''
 }
@@ -361,7 +412,7 @@ function shortID(value) {
 async function loadEnv() {
   if (!envEl.list) return
   try {
-    const response = await fetch('/api/env', { cache: 'no-store' })
+    const response = await fetch(`/api/env?page=${envOpsPage}&page_size=${PAGE_SIZE}`, { cache: 'no-store' })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     renderEnvPool(await response.json())
   } catch (error) {
@@ -373,6 +424,10 @@ async function loadEnv() {
 if (envEl.entry) {
   envEl.entry.addEventListener('click', () => selectTab('env'))
   envEl.refresh.addEventListener('click', loadEnv)
+  bindPager('env-ops', (delta) => {
+    envOpsPage = Math.max(1, envOpsPage + delta)
+    loadEnv()
+  })
   envEl.back.addEventListener('click', () => {
     history.pushState(null, '', location.pathname)
     applyRoute()
@@ -631,11 +686,23 @@ const histEl = {
 }
 
 let historyOpen = null
+// 分页状态：两个列表各自独立，每页固定 100 条。
+const PAGE_SIZE = 100
+let envOpsPage = 1
+let historyPage = 1
 
 const VERDICT_CLASS = { PASS: 'is-pass', FAILED: 'is-fail', PARTIAL: 'is-partial' }
 
 function verdictClass(verdict) {
   return VERDICT_CLASS[verdict] || 'is-none'
+}
+
+// verdictTone 把批次结论映射到圆点徽标的色调。
+function verdictTone(verdict) {
+  if (verdict === 'PASS') return 'ok'
+  if (verdict === 'FAILED') return 'bad'
+  if (verdict === 'PARTIAL') return 'busy'
+  return 'idle'
 }
 
 const STATUS_TEXT = { passed: '通过', failed: '失败', error: '未完成', running: '执行中', queued: '排队中' }
@@ -644,7 +711,6 @@ const STATUS_TEXT = { passed: '通过', failed: '失败', error: '未完成', ru
 function renderHistory(items) {
   histEl.list.replaceChildren()
   histEl.empty.hidden = items.length > 0
-  histEl.count.textContent = items.length ? `最近 ${items.length} 次` : ''
 
   items.forEach((item) => {
     const expanded = historyOpen === item.dir
@@ -654,7 +720,8 @@ function renderHistory(items) {
 
     row.appendChild(el('time', '', beijingTime(item.endedAt || item.startedAt) || '—'))
 
-    const verdict = el('span', `verdict ${verdictClass(item.verdict)}`, item.verdict || '未完成')
+    // 与环境页同一套圆点徽标，避免两种风格并存。
+    const verdict = dotPill(verdictTone(item.verdict), item.verdict || '未完成')
     row.appendChild(verdict)
 
     const suites = el('span', 'history-suites')
@@ -712,10 +779,11 @@ function renderHistory(items) {
 async function loadHistory() {
   if (!histEl.list) return
   try {
-    const response = await fetch('/api/robot/history?limit=30', { cache: 'no-store' })
+    const response = await fetch(`/api/robot/history?page=${historyPage}&page_size=${PAGE_SIZE}`, { cache: 'no-store' })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const payload = await response.json()
     renderHistory(payload.history || [])
+    renderPager('history', payload.total || 0, payload.page || 1)
   } catch (error) {
     histEl.empty.hidden = false
     histEl.empty.textContent = `执行记录加载失败：${error.message || error}`
@@ -793,6 +861,11 @@ async function runRobot() {
 if (robotEl.save) {
   robotEl.save.addEventListener('click', saveRobot)
   robotEl.run.addEventListener('click', runRobot)
+  bindPager('history', (delta) => {
+    historyPage = Math.max(1, historyPage + delta)
+    loadHistory()
+  })
+
   robotEl.entry.addEventListener('click', () => {
     selectTab('robot')
     loadHistory()

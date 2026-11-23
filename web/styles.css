@@ -736,7 +736,13 @@ a.site-card {
 }
 .history-count { color: var(--muted-2); font-size: var(--fs-xs); }
 
-.history-list { display: flex; flex-direction: column; }
+.history-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .history-empty {
   padding: 18px 0;
   color: var(--muted-2);
@@ -967,7 +973,15 @@ a.site-card {
   border-bottom: 1px solid #f3f3f3;
 }
 .env-ops-head h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; letter-spacing: -.2px; }
-.env-ops-list { display: flex; flex-direction: column; }
+/* 列表区限高内部滚动：每页 100 条若全展开会把页面拉到几千像素，
+   限高后翻页仍有意义，页面高度也稳定。 */
+.env-ops-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .env-op { padding: 10px 0; border-bottom: 1px solid #f6f6f6; }
 .env-op:last-child { border-bottom: none; }
 .env-op-head { display: flex; align-items: center; gap: 10px; }
@@ -994,3 +1008,96 @@ a.site-card {
 @media (max-width: 980px) {
   .env-ops { max-width: none; }
   }
+
+/* ── 状态徽标：圆点 + 文字，轻量、间距稳定 ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 2px 9px 2px 7px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill.is-ok { color: var(--green); background: #e8f6ef; }
+.pill.is-busy { color: #b45309; background: #fdf3e3; }
+.pill.is-bad { color: var(--red); background: #fdeeec; }
+.pill.is-run { color: var(--blue); background: var(--blue-soft); }
+.pill.is-idle { color: #55606e; background: var(--soft); }
+/* 执行中的圆点做呼吸动画，静态也能看出"还在跑" */
+.pill.is-run .pill-dot { animation: pill-pulse 1.4s ease-in-out infinite; }
+@keyframes pill-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .45; transform: scale(.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pill.is-run .pill-dot { animation: none; }
+}
+
+/* ── 分页 ── */
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.pager-info { color: var(--muted-2); font-size: var(--fs-xs); }
+.pager-page {
+  min-width: 44px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--body);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.pager-btn:hover:not(:disabled) { border-color: #b9cdee; background: var(--blue-soft); color: var(--blue); }
+.pager-btn:disabled { opacity: .4; cursor: default; }
+.pager-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 82, 217, .18); border-color: var(--blue); }
+
+/* 环境行的名称与徽标分开：名称占满、徽标靠右，中间自然留白 */
+.env-row-head { gap: 12px; }
+.env-name { flex: 1; min-width: 0; }
+
+/* 滚动区的滚动条：细、浅，不抢内容 */
+.env-ops-list::-webkit-scrollbar,
+.history-list::-webkit-scrollbar { width: 8px; }
+.env-ops-list::-webkit-scrollbar-thumb,
+.history-list::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #d5dae1;
+  background-clip: content-box;
+}
+.env-ops-list::-webkit-scrollbar-thumb:hover,
+.history-list::-webkit-scrollbar-thumb:hover { background: #c2c8d0; background-clip: content-box; }
+.env-ops-list::-webkit-scrollbar-track,
+.history-list::-webkit-scrollbar-track { background: transparent; }
+
+/* 分页栏在标题行右侧，与标题同基线，不加分割线 */
+.env-ops .pager,
+.history .pager { margin-left: auto; }

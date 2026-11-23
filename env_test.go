@@ -23,7 +23,7 @@ func summarize(t *testing.T, body string) envPool {
 	if err != nil {
 		t.Fatalf("读取失败: %v", err)
 	}
-	return parseEnvPool(raw)
+	return parseEnvPool(raw, 1, defaultPageSize)
 }
 
 func TestEnvPoolCountsStates(t *testing.T) {

@@ -48,6 +48,22 @@ type historySuite struct {
 
 // loadHistory 从产物目录读取最近 limit 条批次，按时间倒序。
 // 单个批次文件损坏时跳过该条，不影响其余历史。
+// loadHistoryPage 返回第 page 页（每页 pageSize 条）的历史，并给出总条数用于分页。
+func (r *robotRunner) loadHistoryPage(page, pageSize int) ([]historyEntry, int) {
+	all := r.loadHistory(0)
+	total := len(all)
+	page, pageSize = normalizePage(page, pageSize)
+	start := (page - 1) * pageSize
+	if start >= total {
+		return nil, total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+	return all[start:end], total
+}
+
 func (r *robotRunner) loadHistory(limit int) []historyEntry {
 	entries, err := os.ReadDir(r.config.ArtifactDir)
 	if err != nil {

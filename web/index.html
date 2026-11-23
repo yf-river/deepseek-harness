@@ -146,7 +146,12 @@
     <section class="env-ops" aria-labelledby="env-ops-title">
       <header class="env-ops-head">
         <h3 id="env-ops-title">操作记录</h3>
-        <span class="history-count" id="env-ops-count"></span>
+        <div class="pager" id="env-ops-pager" hidden>
+          <span class="pager-info" id="env-ops-count"></span>
+          <button class="pager-btn" type="button" id="env-ops-prev" aria-label="上一页">‹</button>
+          <span class="pager-page" id="env-ops-page">1 / 1</span>
+          <button class="pager-btn" type="button" id="env-ops-next" aria-label="下一页">›</button>
+        </div>
       </header>
       <div class="env-ops-list" id="env-ops-list"></div>
       <p class="history-empty" id="env-ops-empty" hidden>还没有操作记录。</p>
@@ -228,7 +233,12 @@
     <section class="history" aria-labelledby="history-title">
       <header class="history-head">
         <h3 id="history-title">执行记录</h3>
-        <span class="history-count" id="history-count"></span>
+        <div class="pager" id="history-pager" hidden>
+          <span class="pager-info" id="history-count"></span>
+          <button class="pager-btn" type="button" id="history-prev" aria-label="上一页">‹</button>
+          <span class="pager-page" id="history-page">1 / 1</span>
+          <button class="pager-btn" type="button" id="history-next" aria-label="下一页">›</button>
+        </div>
       </header>
       <div class="history-list" id="history-list"></div>
       <p class="history-empty" id="history-empty" hidden>还没有执行记录。</p>

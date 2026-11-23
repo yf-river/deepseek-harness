@@ -257,7 +257,18 @@ func (s *server) serveEnv(writer http.ResponseWriter, request *http.Request) {
 		http.NotFound(writer, request)
 		return
 	}
-	writeJSON(writer, loadEnvPool(s.cwe.SSHHost, s.cwe.StatePath))
+	page, pageSize := 1, defaultPageSize
+	if raw := request.URL.Query().Get("page"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			page = parsed
+		}
+	}
+	if raw := request.URL.Query().Get("page_size"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			pageSize = parsed
+		}
+	}
+	writeJSON(writer, loadEnvPool(s.cwe.SSHHost, s.cwe.StatePath, page, pageSize))
 }
 
 // serveRobot 返回机器人当前状态与设置，供机器人页渲染。
@@ -319,14 +330,25 @@ func (s *server) serveRobotHistory(writer http.ResponseWriter, request *http.Req
 		http.Error(writer, "只接受 GET", http.StatusMethodNotAllowed)
 		return
 	}
-	// limit 默认 30，够看两周；上限 200 防止一次读太多目录。
-	limit := 30
-	if raw := request.URL.Query().Get("limit"); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
-			limit = min(parsed, 200)
+	page, pageSize := 1, defaultPageSize
+	if raw := request.URL.Query().Get("page"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			page = parsed
 		}
 	}
-	writeJSON(writer, map[string]any{"history": s.robot.loadHistory(limit)})
+	if raw := request.URL.Query().Get("page_size"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			pageSize = parsed
+		}
+	}
+	items, total := s.robot.loadHistoryPage(page, pageSize)
+	normPage, normSize := normalizePage(page, pageSize)
+	writeJSON(writer, map[string]any{
+		"history":  items,
+		"total":    total,
+		"page":     normPage,
+		"pageSize": normSize,
+	})
 }
 
 // serveRobotRun 手动触发一次巡检。POST 才接受，触发后立即返回，进度靠轮询 /api/robot。

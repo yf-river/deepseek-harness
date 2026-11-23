@@ -111,8 +111,13 @@ type envPool struct {
 	Busy int `json:"busy"`
 	// CheckedAt 是全池最近一次健康检查时间。
 	CheckedAt string `json:"checkedAt"`
-	// RecentOperations 是最近的操作记录，最新的在前。
+	// RecentOperations 是当前页的操作记录，最新的在前。
 	RecentOperations []envOperation `json:"recentOperations"`
+	// OperationsTotal 是操作记录总数，用于前端分页。
+	OperationsTotal int `json:"operationsTotal"`
+	// OperationsPage 与 OperationsPageSize 回显分页参数。
+	OperationsPage     int `json:"operationsPage"`
+	OperationsPageSize int `json:"operationsPageSize"`
 	// Error 非空表示读取 state.json 失败，此时 Environments 为空。
 	Error string `json:"error,omitempty"`
 }
@@ -122,7 +127,7 @@ type envPool struct {
 // 为什么走 ssh：cwe 与门户不在同一台机器上（cwe 在 40.247），它又没有"列出环境"的
 // HTTP 接口，只能读那份状态文件。走 ssh 读，不复制文件、不额外起同步任务，
 // 读到的始终是 cwe 正在写的那一份。
-func loadEnvPool(sshHost, statePath string) envPool {
+func loadEnvPool(sshHost, statePath string, page, pageSize int) envPool {
 	if sshHost == "" {
 		return envPool{Error: "未配置 cwe 的 ssh_host"}
 	}
@@ -131,11 +136,11 @@ func loadEnvPool(sshHost, statePath string) envPool {
 	if err != nil {
 		return envPool{Error: "读取 cwe 状态失败: " + err.Error()}
 	}
-	return parseEnvPool(raw)
+	return parseEnvPool(raw, page, pageSize)
 }
 
 // parseEnvPool 把 state.json 的原始字节解析成环境池视图。抽成独立函数便于单测。
-func parseEnvPool(raw []byte) envPool {
+func parseEnvPool(raw []byte, page, pageSize int) envPool {
 	var state envStateFile
 	if err := json.Unmarshal(raw, &state); err != nil {
 		return envPool{Error: "解析 cwe 状态失败: " + err.Error()}
@@ -189,14 +194,43 @@ func parseEnvPool(raw []byte) envPool {
 		pool.Environments = append(pool.Environments, view)
 	}
 
-	// 操作记录按创建时间倒序取最近若干条。state.json 里的 operations 是追加写入，
-	// 越靠后越新，所以从尾部往前取。
-	const maxOperations = 20
-	pool.RecentOperations = make([]envOperation, 0, maxOperations)
-	for index := len(state.Operations) - 1; index >= 0 && len(pool.RecentOperations) < maxOperations; index-- {
+	// 操作记录按创建时间倒序分页。state.json 是追加写入，越靠后越新，
+	// 所以从尾部往前取；分页也在这一层做，避免把全部历史都传给前端。
+	pool.OperationsTotal = len(state.Operations)
+	pool.OperationsPage = page
+	pool.OperationsPageSize = pageSize
+	page, pageSize = normalizePage(page, pageSize)
+	pool.OperationsPage = page
+	pool.OperationsPageSize = pageSize
+
+	// 第 page 页对应「倒数第 (page-1)*size 到倒数 page*size 条」。
+	skip := (page - 1) * pageSize
+	pool.RecentOperations = make([]envOperation, 0, pageSize)
+	for offset := skip; offset < skip+pageSize; offset++ {
+		index := len(state.Operations) - 1 - offset
+		if index < 0 {
+			break
+		}
 		pool.RecentOperations = append(pool.RecentOperations, state.Operations[index])
 	}
 	return pool
+}
+
+// 分页常量：每页 100 条，是用户要求的固定口径。
+const (
+	defaultPageSize = 100
+	maxPageSize     = 100
+)
+
+// normalizePage 把分页参数收进合法范围。页码从 1 开始，页大小固定上限 100。
+func normalizePage(page, pageSize int) (int, int) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 || pageSize > maxPageSize {
+		pageSize = defaultPageSize
+	}
+	return page, pageSize
 }
 
 // moduleNames 把模块记录压成名称数组。
