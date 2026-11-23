@@ -41,7 +41,8 @@ robot:
   mail_to:
     - yunfeihu@tencent.com
   mail_bin: /usr/local/bin/wecom-cli
-  # 本地演练阶段先不发信，验证链路后改成 true
+  # 下面两项只是首次启动的初始值；页面上勾选「执行后发邮件」「每天定时执行」并保存后，
+  # 以 run/robot/settings.json 为准，改这里不再影响已保存的设置。
   send_mail: false
   artifact_dir: /opt/chainweaver-studio/run/robot
   enabled: false

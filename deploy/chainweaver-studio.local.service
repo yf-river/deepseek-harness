@@ -15,7 +15,9 @@ Group=root
 UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectHome=true
+# 不能开 ProtectHome：wecom-cli 的凭据在 /root/.config/wecom，
+# 开了之后服务读不到，发信会以 "exit status 1" 失败。
+ProtectHome=false
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

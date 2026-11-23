@@ -192,6 +192,11 @@ func (m Mailer) Send(ctx context.Context, subject, bodyPath string) (string, err
 	output, err := command.CombinedOutput()
 	text := strings.TrimSpace(string(output))
 	if err != nil {
+		// 把 CLI 的原始输出带进错误里：只报 "exit status 1" 无法排查是权限、
+		// 参数还是网络问题。
+		if text != "" {
+			return text, fmt.Errorf("发信失败（%v）: %s", err, text)
+		}
 		return text, fmt.Errorf("发信失败: %w", err)
 	}
 	return text, nil
