@@ -128,6 +128,11 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   cursor: pointer;
   transition: color .2s, border-color .2s, background .2s;
 }
+/* 站点签是 <a>：清掉链接默认下划线与蓝色，视觉上与首页按钮签一致。 */
+a.nav-tab {
+  color: inherit;
+  text-decoration: none;
+}
 .nav-tab-icon {
   display: flex;
   align-items: center;
@@ -200,11 +205,12 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   cursor: pointer;
   transition: border-color .18s, box-shadow .18s, transform .18s;
 }
-/* 放到 button 上时清掉默认按钮外观，避免灰底与居中文字。 */
-button.site-card {
+/* 卡片是 <a>（新标签打开），去掉链接默认样式，保持与区块内其它卡片一致的排版。 */
+a.site-card {
   width: 100%;
   font: inherit;
   color: inherit;
+  text-decoration: none;
 }
 .site-card:hover {
   border-color: #b9cdee;

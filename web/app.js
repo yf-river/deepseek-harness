@@ -55,10 +55,12 @@ function el(tag, className, text) {
   return node
 }
 
-// go 统一在一个地方跳转：整页进入目标站点，浏览器地址栏保留目标地址。
+// go 统一在一个地方打开站点：用新标签页打开，门户本身保留在原来那页，
+// 这样从站点退回来还能继续选别的入口。noopener 防止目标页拿到 window.opener。
 function go(site) {
-  if (!site || !site.url) return
-  window.location.href = site.url
+  if (!site || !site.url) return false
+  window.open(site.url, '_blank', 'noopener')
+  return false
 }
 
 function navIconSpan(site) {
@@ -95,14 +97,16 @@ function renderTabs() {
   navTabs.appendChild(home)
 
   sites.forEach((site) => {
-    const tab = el('button', 'nav-tab')
-    tab.type = 'button'
-    tab.setAttribute('role', 'tab')
+    // 用 <a> 而不是 button：新标签页打开是链接的原生行为，不受浏览器弹窗拦截影响，
+    // 中键和右键"在新标签打开"也自动可用。
+    const tab = el('a', 'nav-tab')
+    tab.href = site.url
+    tab.target = '_blank'
+    tab.rel = 'noopener'
     tab.dataset.key = site.key
     tab.title = `${site.title} · ${site.url}`
     tab.appendChild(navIconSpan(site))
     tab.appendChild(el('span', 'nav-tab-label', site.label))
-    tab.addEventListener('click', () => go(site))
     navTabs.appendChild(tab)
   })
 
@@ -128,8 +132,10 @@ function statusBadge(health) {
 function renderCards(healthByKey) {
   siteGrid.replaceChildren()
   sites.forEach((site) => {
-    const card = el('button', 'site-card')
-    card.type = 'button'
+    const card = el('a', 'site-card')
+    card.href = site.url
+    card.target = '_blank'
+    card.rel = 'noopener'
     card.dataset.key = site.key
     card.title = `进入 ${site.title}`
 
@@ -159,7 +165,6 @@ function renderCards(healthByKey) {
     foot.appendChild(goLabel)
     card.appendChild(foot)
 
-    card.addEventListener('click', () => go(site))
     siteGrid.appendChild(card)
   })
 }
