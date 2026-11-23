@@ -1,0 +1,25 @@
+[Unit]
+Description=ChainWeaver portal (local) — unified entry for chainweaver-test and chainweaver-flow
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/chainweaver-portal
+ExecStart=/opt/chainweaver-portal/chainweaver-portal -config /opt/chainweaver-portal/config/sites.yaml -listen 9.134.129.162:18094
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=20
+User=root
+Group=root
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

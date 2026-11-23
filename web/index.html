@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0052d9">
+  <title>ChainWeaver</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#board">跳到主要内容</a>
+
+  <header class="app-header">
+    <div class="header-main-row">
+      <div class="header-brand">
+        <div class="header-logo-icon" aria-hidden="true">
+          <!-- 与 favicon 同一枚 C 字标：渐变圆角方块 + 细线 C + 三块站点方块。 -->
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="brandg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#2b7fff"/><stop offset="1" stop-color="#0040b0"/>
+            </linearGradient></defs>
+            <rect width="64" height="64" rx="14" fill="url(#brandg)"/>
+            <path d="M42.5 16.5A17.8 17.8 0 1 0 42.5 47.5" fill="none" stroke="#fff"
+              stroke-width="5.6" stroke-linecap="round"/>
+            <rect x="26" y="21.5" width="6.8" height="6.8" rx="2" fill="#fff" opacity=".95"/>
+            <rect x="32.4" y="28.6" width="6.8" height="6.8" rx="2" fill="#fff" opacity=".78"/>
+            <rect x="26" y="35.7" width="6.8" height="6.8" rx="2" fill="#fff" opacity=".6"/>
+          </svg>
+        </div>
+        <div class="header-title">
+          <h1 id="portal-title">ChainWeaver</h1>
+        </div>
+      </div>
+
+      <nav class="header-nav" aria-label="站点导航">
+        <div class="nav-tabs" id="nav-tabs" role="tablist"></div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 首页视图：站点清单 -->
+  <main class="app-main" id="view-home">
+    <h2 class="page-title" id="page-title">全部站点</h2>
+
+    <section class="site-grid" id="site-grid" aria-label="站点列表"></section>
+
+    <p class="loading" id="loading">正在加载站点清单…</p>
+  </main>
+
+  <!-- 机器人视图：一张卡片装下设置与执行结果 -->
+  <main class="app-main" id="view-robot" hidden>
+    <h2 class="page-title">每日巡检机器人</h2>
+
+    <section class="robot-card" aria-labelledby="robot-card-title">
+      <header class="robot-head">
+        <div class="robot-head-text">
+          <h3 id="robot-card-title">E2E 集成测试 · 每日巡检</h3>
+          <p id="robot-summary">每天把选中的主流程依次跑一遍，结果发到指定邮箱。</p>
+        </div>
+        <span class="robot-state" id="robot-state">未执行</span>
+      </header>
+
+      <dl class="robot-rows">
+        <div class="robot-row">
+          <dt>主流程</dt>
+          <dd id="robot-suites"></dd>
+        </div>
+        <div class="robot-row">
+          <dt>每天</dt>
+          <dd><input id="robot-schedule" type="time" step="60" aria-label="每日执行时间">
+            <span class="robot-hint" id="robot-next"></span></dd>
+        </div>
+        <div class="robot-row">
+          <dt>收件人</dt>
+          <dd><input id="robot-mailto" type="text" spellcheck="false" aria-label="收件人邮箱"
+                placeholder="yunfeihu@tencent.com"></dd>
+        </div>
+        <div class="robot-row">
+          <dt>启用</dt>
+          <dd>
+            <label class="robot-toggle"><input id="robot-enabled" type="checkbox"> 每天定时执行</label>
+            <label class="robot-toggle"><input id="robot-sendmail" type="checkbox"> 执行后发邮件</label>
+          </dd>
+        </div>
+      </dl>
+
+      <p class="robot-result" id="robot-result" hidden></p>
+
+      <footer class="robot-actions">
+        <button class="button quiet" id="robot-save" type="button">保存设置</button>
+        <button class="button" id="robot-run" type="button">立即执行一次</button>
+      </footer>
+    </section>
+  </main>
+</body>
+</html>
