@@ -77,8 +77,20 @@ run "chmod 600 $INSTALL_DIR/config/sites.yaml
      systemctl daemon-reload
      systemctl enable $SERVICE_NAME >/dev/null 2>&1
      systemctl restart $SERVICE_NAME
-     sleep 2
      systemctl is-active $SERVICE_NAME"
+
+# 等端口真正可连再继续：固定 sleep 在机器忙时不够，会让后面的冒烟误判失败。
+# 探测从执行机发出，本机与远端两种情况都适用。
+echo "==> 等待服务就绪"
+ready=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+  if curl -sf -o /dev/null -m 2 "http://$LISTEN/"; then ready=1; break; fi
+  sleep 1
+done
+if [ "$ready" -ne 1 ]; then
+  echo "!! 服务在 30 秒内未就绪" >&2
+  exit 1
+fi
 
 echo "==> 冒烟验证 $LISTEN"
 BASE="http://$LISTEN"

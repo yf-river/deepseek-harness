@@ -147,99 +147,8 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .nav-tab.active .nav-tab-icon { opacity: 1; }
 .nav-tab:active { background: #eaf1fc; }
 
-/* ── 主体 ── */
-.app-main {
-  padding: 24px 32px 40px;
-}
-
-/* 页面标题：只说这一页是什么，不复述页头的副标题。 */
-.page-title {
-  margin: 0 0 16px;
-  color: var(--ink);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -.3px;
-}
-
-/* 区块标题：与「全部站点」同字号，但上方留出与上一区块的间距 */
-.section-title {
-  margin: 28px 0 16px;
-}
-
-/* 机器人入口卡片：整张可点，右侧带状态与「查看」 */
-.robot-entry {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  max-width: 720px;
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color .18s, box-shadow .18s, transform .18s;
-}
-.robot-entry:hover {
-  border-color: #b9cdee;
-  box-shadow: 0 6px 20px rgba(55, 99, 170, .1);
-  transform: translateY(-1px);
-}
-.robot-entry:active { transform: translateY(0); }
-.robot-entry-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 9px;
-  background: var(--blue-soft);
-  color: var(--blue);
-}
-.robot-entry-icon svg { width: 20px; height: 20px; }
-.robot-entry-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-.robot-entry-title {
-  color: var(--ink);
-  font-size: 14.5px;
-  font-weight: 600;
-  letter-spacing: -.2px;
-}
-.robot-entry-desc {
-  color: var(--muted);
-  font-size: 12.5px;
-  line-height: 1.55;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.robot-entry-status {
-  flex-shrink: 0;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--soft);
-  color: #8a94a6;
-  font-size: 11px;
-  line-height: 1.7;
-  white-space: nowrap;
-}
-.robot-entry-status.is-running { background: #e8f6ef; color: var(--green); }
-.robot-entry-status.is-pass { background: #e8f6ef; color: var(--green); }
-.robot-entry-status.is-fail { background: #fdeeec; color: var(--red); }
-.robot-entry-go {
-  flex-shrink: 0;
-  color: var(--blue);
-  font-size: 12.5px;
-  font-weight: 500;
-}
+/* 区块标题：与「全部站点」同字号，上方留出与上一区块的间距。 */
+.section-title { margin: 28px 0 16px; }
 
 /* 详情页返回 */
 .back-link {
@@ -254,6 +163,20 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   cursor: pointer;
 }
 .back-link:hover { color: var(--blue); }
+
+/* ── 主体 ── */
+.app-main {
+  padding: 24px 32px 40px;
+}
+
+/* 页面标题：只说这一页是什么，不复述页头的副标题。 */
+.page-title {
+  margin: 0 0 16px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.3px;
+}
 
 .site-grid {
   display: grid;
@@ -274,17 +197,29 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   cursor: pointer;
   transition: border-color .18s, box-shadow .18s, transform .18s;
 }
+/* 放到 button 上时清掉默认按钮外观，避免灰底与居中文字。 */
+button.site-card {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
 .site-card:hover {
   border-color: #b9cdee;
   box-shadow: 0 6px 20px rgba(55, 99, 170, .1);
   transform: translateY(-1px);
 }
 .site-card:active { transform: translateY(0); }
+/* 卡片子块在 div 与 button 两种宿主下表现一致：button 里的 span 需要显式块级化，
+   否则 width / flex 布局不生效。 */
 .site-card-head {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
 }
+.site-card-heading,
+.site-card-desc,
+.site-card-foot { display: flex; }
 .site-card-icon {
   display: flex;
   align-items: center;
@@ -297,7 +232,11 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   color: var(--blue);
 }
 .site-card-icon svg { width: 20px; height: 20px; }
-.site-card-heading { min-width: 0; }
+.site-card-heading {
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
 .site-card-heading h3 {
   font-size: 15px;
   font-weight: 600;
@@ -324,7 +263,8 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   padding: 0;
   list-style: none;
 }
-.site-card-tags li {
+.site-card-tags li,
+.site-card-tags .tag {
   padding: 2px 8px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -412,101 +352,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   }
   .nav-tab { padding: 0 14px; }
   .app-main { padding: 20px 20px 32px; }
-  /* 区块标题：与「全部站点」同字号，但上方留出与上一区块的间距 */
-.section-title {
-  margin: 28px 0 16px;
-}
-
-/* 机器人入口卡片：整张可点，右侧带状态与「查看」 */
-.robot-entry {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  max-width: 720px;
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color .18s, box-shadow .18s, transform .18s;
-}
-.robot-entry:hover {
-  border-color: #b9cdee;
-  box-shadow: 0 6px 20px rgba(55, 99, 170, .1);
-  transform: translateY(-1px);
-}
-.robot-entry:active { transform: translateY(0); }
-.robot-entry-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 9px;
-  background: var(--blue-soft);
-  color: var(--blue);
-}
-.robot-entry-icon svg { width: 20px; height: 20px; }
-.robot-entry-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-.robot-entry-title {
-  color: var(--ink);
-  font-size: 14.5px;
-  font-weight: 600;
-  letter-spacing: -.2px;
-}
-.robot-entry-desc {
-  color: var(--muted);
-  font-size: 12.5px;
-  line-height: 1.55;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.robot-entry-status {
-  flex-shrink: 0;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--soft);
-  color: #8a94a6;
-  font-size: 11px;
-  line-height: 1.7;
-  white-space: nowrap;
-}
-.robot-entry-status.is-running { background: #e8f6ef; color: var(--green); }
-.robot-entry-status.is-pass { background: #e8f6ef; color: var(--green); }
-.robot-entry-status.is-fail { background: #fdeeec; color: var(--red); }
-.robot-entry-go {
-  flex-shrink: 0;
-  color: var(--blue);
-  font-size: 12.5px;
-  font-weight: 500;
-}
-
-/* 详情页返回 */
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  margin: 0 0 4px;
-  padding: 4px 0;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12.5px;
-  cursor: pointer;
-}
-.back-link:hover { color: var(--blue); }
-
-.site-grid { grid-template-columns: 1fr; }
+  .site-grid { grid-template-columns: 1fr; }
 }
 
 /* ── 机器人页 ── */

@@ -202,6 +202,8 @@ const robotEl = {
   entry: document.getElementById('robot-entry'),
   entryDesc: document.getElementById('robot-entry-desc'),
   entryStatus: document.getElementById('robot-entry-status'),
+  entrySub: document.getElementById('robot-entry-sub'),
+  entryMeta: document.getElementById('robot-entry-meta'),
   back: document.getElementById('robot-back'),
 }
 
@@ -300,17 +302,32 @@ function renderRobotState(payload) {
 
   // 首页卡片同步显示同一份状态，用户不进详情也能看到上次结果。
   if (robotEl.entryStatus) {
+    // 与站点卡片共用 .status 徽标：绿=正常、红=失败、灰=未执行。
+    const tone = running || state.verdict === 'PASS'
+      ? 'status status-up'
+      : state.verdict ? 'status status-down' : 'status status-unknown'
+    robotEl.entryStatus.className = tone
     robotEl.entryStatus.textContent = running ? '执行中' : state.verdict || '未执行'
-    robotEl.entryStatus.className = 'robot-entry-status' + (running ? ' is-running' : state.verdict === 'PASS' ? ' is-pass' : state.verdict ? ' is-fail' : '')
+    robotEl.entryStatus.title = state.endedAt ? `上次 ${beijingTime(state.endedAt)}` : ''
+  }
+  if (robotEl.entrySub) {
+    const suites = (settings.suites || []).map((id) => id.toUpperCase()).join(' · ')
+    const when = settings.enabled ? `每天 ${settings.schedule || '—'}` : '定时未启用'
+    robotEl.entrySub.textContent = suites ? `${suites} · ${when}` : '每天定时执行'
   }
   if (robotEl.entryDesc) {
+    robotEl.entryDesc.textContent = running
+      ? (state.message || '正在执行…')
+      : '每天把选中的主流程依次跑一遍，结果发到指定邮箱。'
+  }
+  if (robotEl.entryMeta) {
     if (running) {
-      robotEl.entryDesc.textContent = state.message || '正在执行…'
+      robotEl.entryMeta.textContent = '正在执行'
     } else if (state.verdict) {
       const tail = state.endedAt ? ` · ${beijingTime(state.endedAt)}` : ''
-      robotEl.entryDesc.textContent = `上次结果：${state.verdict}${tail}`
+      robotEl.entryMeta.textContent = `上次结果 ${state.verdict}${tail}`
     } else {
-      robotEl.entryDesc.textContent = '每天把选中的主流程依次跑一遍，结果发到指定邮箱。'
+      robotEl.entryMeta.textContent = '尚未执行'
     }
   }
 

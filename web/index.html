@@ -51,24 +51,36 @@
     <!-- 机器人区块：与「全部站点」平级，卡片点进去看设置与运行记录 -->
     <h2 class="page-title section-title">机器人</h2>
 
-    <button class="robot-entry" id="robot-entry" type="button" aria-controls="view-robot">
-      <span class="robot-entry-icon" aria-hidden="true">
-        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3.5" y="6.5" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M10 3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <circle cx="10" cy="2.6" r="1.1" fill="currentColor"/>
-          <circle cx="7.6" cy="10.8" r="1.15" fill="currentColor"/>
-          <circle cx="12.4" cy="10.8" r="1.15" fill="currentColor"/>
-          <path d="M8 13.6h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-        </svg>
-      </span>
-      <span class="robot-entry-body">
-        <span class="robot-entry-title">E2E 集成测试 · 每日巡检</span>
-        <span class="robot-entry-desc" id="robot-entry-desc">每天把选中的主流程依次跑一遍，结果发到指定邮箱。</span>
-      </span>
-      <span class="robot-entry-status" id="robot-entry-status">未执行</span>
-      <span class="robot-entry-go">查看 →</span>
-    </button>
+    <div class="site-grid">
+      <button class="site-card" id="robot-entry" type="button" aria-controls="view-robot"
+              title="查看机器人的设置与运行记录">
+        <span class="site-card-head">
+          <span class="site-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3.5" y="6.5" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M10 3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="10" cy="2.6" r="1.1" fill="currentColor"/>
+              <circle cx="7.6" cy="10.8" r="1.15" fill="currentColor"/>
+              <circle cx="12.4" cy="10.8" r="1.15" fill="currentColor"/>
+              <path d="M8 13.6h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="site-card-heading">
+            <h3>E2E 集成测试 · 每日巡检</h3>
+            <p id="robot-entry-sub">每天定时执行</p>
+          </span>
+          <span class="status status-unknown" id="robot-entry-status">未执行</span>
+        </span>
+        <span class="site-card-desc" id="robot-entry-desc">每天把选中的主流程依次跑一遍，结果发到指定邮箱。</span>
+        <span class="site-card-tags">
+          <span class="tag">定时巡检</span><span class="tag">结果发邮件</span><span class="tag">可手动执行</span>
+        </span>
+        <span class="site-card-foot">
+          <span class="site-url" id="robot-entry-meta">尚未执行</span>
+          <span class="site-go">查看 →</span>
+        </span>
+      </button>
+    </div>
   </main>
 
   <!-- 机器人详情：设置与运行记录 -->
