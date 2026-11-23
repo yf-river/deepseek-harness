@@ -170,18 +170,24 @@ a.nav-tab {
 .nav-tab:active { background: #eaf1fc; }
 
 /* 详情页返回 */
+/* 返回：做成有形态的次级按钮，而不是一条会变色的文字 */
 .back-link {
   display: inline-flex;
   align-items: center;
-  margin: 0 0 4px;
-  padding: 4px 0;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12.5px;
+  gap: 5px;
+  margin: 0;
+  padding: 5px 12px 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--body);
+  font-size: var(--fs-sm);
   cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
 }
-.back-link:hover { color: var(--blue); }
+.back-link svg { width: 15px; height: 15px; color: var(--muted); transition: color .15s; }
+.back-link:hover { border-color: #b9cdee; background: var(--blue-soft); color: var(--blue); }
+.back-link:hover svg { color: var(--blue); }
 
 /* ── 主体 ── */
 .app-main {
@@ -462,43 +468,135 @@ a.site-card {
   font: inherit;
   font-size: 13px;
 }
-.robot-row input[type='text'] { width: 280px; }
-.robot-row input[type='time'] { width: 118px; }
-.robot-row input[type='time']:hover,
-.robot-row input[type='text']:hover { border-color: #b7b7b7; }
+.robot-row #robot-mailto { width: 280px; }
+.robot-row input[type='text']:not(.time-picker input):hover { border-color: #b7b7b7; }
 .robot-row input:focus-visible { outline: 3px solid #a4c2f2; outline-offset: 1px; }
 
-/* 主流程用复选块，而不是一排标签 */
-.robot-chip {
+/* 主流程勾选块：自绘勾选态，避免原生方块嵌在胶囊里的视觉冲突 */
+.suite-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 11px 5px 9px;
+  gap: 7px;
+  padding: 6px 12px 6px 9px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 7px;
   background: var(--surface);
   color: var(--body);
-  font-size: 12.5px;
+  font: inherit;
+  font-size: var(--fs-sm);
   cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.suite-chip:hover { border-color: #b9cdee; }
+.suite-chip-mark {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border: 1.5px solid #c2c8d0;
+  border-radius: 4px;
+  background: var(--surface);
   transition: border-color .15s, background .15s;
 }
-.robot-chip:hover { border-color: #b9cdee; }
-.robot-chip input { accent-color: var(--blue); margin: 0; }
-.robot-chip:has(input:checked) {
+/* 勾：用一个旋转 45° 的两边表示，选中时出现 */
+.suite-chip-mark::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform .15s;
+}
+.suite-chip[aria-pressed='true'] {
   border-color: #c3d6f5;
   background: var(--blue-soft);
   color: var(--blue);
+  font-weight: 500;
+}
+.suite-chip[aria-pressed='true'] .suite-chip-mark {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+.suite-chip[aria-pressed='true'] .suite-chip-mark::after {
+  transform: rotate(45deg) scale(1);
 }
 
-.robot-toggle {
+/* 时间输入：24 小时制两格，替代带系统图标的原生 time */
+.time-picker {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: var(--body);
-  font-size: 12.5px;
+  gap: 2px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  transition: border-color .15s;
+}
+.time-picker:focus-within { border-color: var(--blue); }
+.time-picker input {
+  width: 40px;
+  height: auto;
+  padding: 4px 2px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.time-picker input:focus { outline: none; }
+.time-colon { color: var(--muted); font-size: var(--fs-md); }
+
+/* 开关：自绘 track + thumb，替代原生 checkbox */
+.switch-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   cursor: pointer;
 }
-.robot-toggle input { accent-color: var(--blue); margin: 0; }
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.switch-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #d5dae1;
+  transition: background .18s;
+}
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .16);
+  transition: transform .18s;
+}
+.switch input:checked + .switch-track { background: var(--blue); }
+.switch input:checked + .switch-track .switch-thumb { transform: translateX(16px); }
+.switch input:focus-visible + .switch-track {
+  outline: 3px solid #a4c2f2;
+  outline-offset: 2px;
+}
+.switch-label { color: var(--body); font-size: var(--fs-sm); }
 
 .robot-hint { color: var(--muted-2); font-size: var(--fs-xs); }
 
@@ -593,7 +691,7 @@ a.site-card {
   .robot-card { max-width: none; }
   .robot-row { flex-direction: column; gap: 6px; }
   .robot-row dt { width: auto; padding-top: 0; }
-  .robot-row input[type='text'] { width: 100%; }
+  .robot-row #robot-mailto { width: 100%; }
 }
 
 /* ── 执行记录 ── */

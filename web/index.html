@@ -85,7 +85,13 @@
 
   <!-- 机器人详情：设置与运行记录 -->
   <main class="app-main" id="view-robot" hidden>
-    <button class="back-link" id="robot-back" type="button">← 返回全部站点</button>
+    <button class="back-link" id="robot-back" type="button">
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      返回全部站点
+    </button>
     <h2 class="page-title">每日巡检机器人</h2>
 
     <section class="robot-card" aria-labelledby="robot-card-title">
@@ -100,12 +106,21 @@
       <dl class="robot-rows">
         <div class="robot-row">
           <dt>主流程</dt>
-          <dd id="robot-suites"></dd>
+          <dd id="robot-suites" role="group" aria-label="主流程"></dd>
         </div>
         <div class="robot-row">
           <dt>每天</dt>
-          <dd><input id="robot-schedule" type="time" step="60" aria-label="每日执行时间">
-            <span class="robot-hint" id="robot-next"></span></dd>
+          <dd>
+            <!-- 自定义时间选择：24 小时制时分两格，避免原生控件带系统图标与 12 小时制。 -->
+            <div class="time-picker" id="robot-schedule">
+              <input id="robot-hour" type="text" inputmode="numeric" maxlength="2"
+                     aria-label="小时" autocomplete="off">
+              <span class="time-colon">:</span>
+              <input id="robot-minute" type="text" inputmode="numeric" maxlength="2"
+                     aria-label="分钟" autocomplete="off">
+            </div>
+            <span class="robot-hint" id="robot-next"></span>
+          </dd>
         </div>
         <div class="robot-row">
           <dt>收件人</dt>
@@ -118,9 +133,17 @@
         </div>
         <div class="robot-row">
           <dt>启用</dt>
-          <dd>
-            <label class="robot-toggle"><input id="robot-enabled" type="checkbox"> 每天定时执行</label>
-            <label class="robot-toggle"><input id="robot-sendmail" type="checkbox"> 执行后发邮件</label>
+          <dd class="switch-group">
+            <label class="switch">
+              <input id="robot-enabled" type="checkbox" role="switch">
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <span class="switch-label">每天定时执行</span>
+            </label>
+            <label class="switch">
+              <input id="robot-sendmail" type="checkbox" role="switch">
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <span class="switch-label">执行后发邮件</span>
+            </label>
           </dd>
         </div>
       </dl>

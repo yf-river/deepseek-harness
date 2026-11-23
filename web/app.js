@@ -197,6 +197,8 @@ const robotEl = {
   summary: document.getElementById('robot-summary'),
   suites: document.getElementById('robot-suites'),
   schedule: document.getElementById('robot-schedule'),
+  hour: document.getElementById('robot-hour'),
+  minute: document.getElementById('robot-minute'),
   next: document.getElementById('robot-next'),
   mailto: document.getElementById('robot-mailto'),
   mailChips: document.getElementById('robot-mailto-chips'),
@@ -232,17 +234,22 @@ function beijingTime(raw) {
 }
 
 // suiteCheckboxes 渲染主流程多选。用复选而不是下拉，三个主流程一眼看得全。
+// suiteCheckboxes 渲染主流程勾选块。用 button + aria-pressed 而不是原生 checkbox：
+// 原生方块在胶囊里视觉冲突明显，自绘勾选态更贴近整页语言。
 function suiteCheckboxes(available, selected) {
   robotEl.suites.replaceChildren()
   available.forEach((suite) => {
-    const label = el('label', 'robot-chip')
-    const input = document.createElement('input')
-    input.type = 'checkbox'
-    input.value = suite.id
-    input.checked = selected.includes(suite.id)
-    label.appendChild(input)
-    label.appendChild(el('span', '', suite.name))
-    robotEl.suites.appendChild(label)
+    const chip = el('button', 'suite-chip')
+    chip.type = 'button'
+    chip.dataset.suite = suite.id
+    chip.setAttribute('aria-pressed', selected.includes(suite.id) ? 'true' : 'false')
+    chip.appendChild(el('span', 'suite-chip-mark'))
+    chip.appendChild(el('span', 'suite-chip-name', suite.name))
+    chip.addEventListener('click', () => {
+      const on = chip.getAttribute('aria-pressed') === 'true'
+      chip.setAttribute('aria-pressed', on ? 'false' : 'true')
+    })
+    robotEl.suites.appendChild(chip)
   })
 }
 
@@ -265,7 +272,7 @@ function renderRobotState(payload) {
   // 设置只在非执行中回填，避免轮询覆盖用户正在改的内容。
   if (!running && payload.availableSuites) {
     suiteCheckboxes(payload.availableSuites, settings.suites || [])
-    robotEl.schedule.value = settings.schedule || ''
+    setScheduleInput(settings.schedule || '')
     mailRecipients = (settings.mailTo || []).slice()
     renderMailChips()
     robotEl.enabled.checked = !!settings.enabled
@@ -351,6 +358,55 @@ function renderRobotState(payload) {
   }
 }
 
+
+
+// ── 时间输入 ──
+// 两个输入框拼成 HH:MM。输入过程中自动补齐与夹取范围，失焦时归一化。
+function pad2(value) {
+  return String(value).padStart(2, '0')
+}
+
+function clampPart(raw, max) {
+  const digits = String(raw).replace(/\D/g, '').slice(0, 2)
+  if (!digits) return ''
+  const number = Math.min(Number(digits), max)
+  return pad2(number)
+}
+
+function setScheduleInput(value) {
+  const match = /^(\d{1,2}):(\d{1,2})$/.exec(String(value || '').trim())
+  if (!match) {
+    robotEl.hour.value = '08'
+    robotEl.minute.value = '00'
+    return
+  }
+  robotEl.hour.value = pad2(Math.min(Number(match[1]), 23))
+  robotEl.minute.value = pad2(Math.min(Number(match[2]), 59))
+}
+
+function readScheduleInput() {
+  const hour = clampPart(robotEl.hour.value, 23) || '00'
+  const minute = clampPart(robotEl.minute.value, 59) || '00'
+  return `${hour}:${minute}`
+}
+
+// 输入即校验：只留数字、最多两位、超范围夹到边界；离开时补零。
+function bindTimeInput(input, max) {
+  input.addEventListener('input', () => {
+    const cleaned = String(input.value).replace(/\D/g, '').slice(0, 2)
+    input.value = cleaned
+  })
+  input.addEventListener('blur', () => {
+    input.value = clampPart(input.value, max) || '00'
+  })
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+    event.preventDefault()
+    const current = Number(clampPart(input.value, max) || 0)
+    const next = event.key === 'ArrowUp' ? current + 1 : current - 1
+    input.value = pad2(Math.max(0, Math.min(next, max)))
+  })
+}
 
 // ── 收件人胶囊 ──
 // 邮箱以胶囊列出，输入框负责新增：回车 / 逗号 / 分号提交，退格在空输入时删掉最后一个。
@@ -510,11 +566,12 @@ async function loadRobot() {
 
 // collectSettings 从卡片读出设置。空行与空邮箱一律丢掉。
 function collectSettings() {
-  const suites = Array.from(robotEl.suites.querySelectorAll('input:checked')).map((i) => i.value)
+  const suites = Array.from(robotEl.suites.querySelectorAll('.suite-chip[aria-pressed="true"]'))
+    .map((chip) => chip.dataset.suite)
   const mailTo = mailRecipients.slice()
   return {
     suites,
-    schedule: robotEl.schedule.value,
+    schedule: readScheduleInput(),
     mailTo,
     sendMail: robotEl.sendmail.checked,
     enabled: robotEl.enabled.checked,
@@ -589,6 +646,8 @@ if (robotEl.save) {
     }
   })
   // 粘贴多个邮箱时直接解析，不用逐个回车。
+  bindTimeInput(robotEl.hour, 23)
+  bindTimeInput(robotEl.minute, 59)
   robotEl.mailto.addEventListener('blur', () => { commitMailInput() })
   robotEl.mailto.addEventListener('paste', () => {
     setTimeout(commitMailInput, 0)
