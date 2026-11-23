@@ -147,9 +147,6 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .nav-tab.active .nav-tab-icon { opacity: 1; }
 .nav-tab:active { background: #eaf1fc; }
 
-/* 区块标题：与「全部站点」同字号，上方留出与上一区块的间距。 */
-.section-title { margin: 28px 0 16px; }
-
 /* 详情页返回 */
 .back-link {
   display: inline-flex;
@@ -176,6 +173,12 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   font-size: 17px;
   font-weight: 600;
   letter-spacing: -.3px;
+}
+
+/* 区块标题：与「全部站点」同字号，但上方要拉出与上一区块的分隔距离。
+   必须放在 .page-title 之后并提高选择器权重，否则同优先级的 margin 会被覆盖。 */
+.page-title.section-title {
+  margin-top: 40px;
 }
 
 .site-grid {
