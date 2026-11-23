@@ -17,6 +17,14 @@ import (
 	"chainweaver-studio/robot"
 )
 
+// suiteTimeout 是单个主流程的等待上限，必须大于 client 的 RunTimeout（90 分钟），
+// 让 client 先给出明确的「等待超时」结论，而不是让 context 先取消成含糊的「已取消」。
+const suiteTimeout = 100 * time.Minute
+
+// batchTimeout 是整批的上限。三个套件最坏情况各接近上限，给 6 小时足够，
+// 作用只是防止批次永久挂住占着互斥锁。
+const batchTimeout = 6 * time.Hour
+
 // 机器人状态机的几个取值，供前端展示。
 const (
 	robotIdle    = "idle"
@@ -231,14 +239,29 @@ func (r *robotRunner) execute(trigger string) {
 		names[suite.ID] = suite.Name
 	}
 
+	// 整批一个总 deadline，防止某个套件把互斥锁永久占住。
+	batchCtx, batchCancel := context.WithTimeout(context.Background(), batchTimeout)
+	defer batchCancel()
+
 	results := make([]robot.RunSummary, 0, len(r.config.Suites))
 	for _, suite := range r.config.Suites {
+		if batchCtx.Err() != nil {
+			results = append(results, robot.RunSummary{
+				ID:     suite.ID,
+				Suites: []string{suite.ID},
+				Status: robot.StatusError,
+				Error:  "跳过：整批已超过总时限",
+			})
+			continue
+		}
 		r.update(func(s *robotState) {
 			s.Message = fmt.Sprintf("正在执行 %s…", names[suite.ID])
 			s.Results = results
 		})
-		// 单个 suite 用带超时的 context，避免某个流程把整批拖死。
-		suiteCtx, suiteCancel := context.WithTimeout(context.Background(), 45*time.Minute)
+		// 单个 suite 的 context 要比 client 的 RunTimeout 更长，否则 context 先到期，
+		// 错误会变成含糊的 "已取消"，看不出到底是超时还是别的原因。
+		// 从 batchCtx 派生：整批超时能真正打断当前套件，而不是等它自己跑完。
+		suiteCtx, suiteCancel := context.WithTimeout(batchCtx, suiteTimeout)
 		outcome := r.client.Run(suiteCtx, batch, []robot.Suite{suite})
 		suiteCancel()
 		results = append(results, outcome...)

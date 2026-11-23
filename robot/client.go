@@ -77,15 +77,25 @@ type Client struct {
 	// PollInterval 是轮询间隔；RunTimeout 是单流程的等待上限，超过即判为执行器侧超时。
 	PollInterval time.Duration
 	RunTimeout   time.Duration
+	// BusyRetries 与 BusyRetryInterval 控制 503 environment_busy 的重试，
+	// 对应 CWT 侧的环境排队，不是业务失败。
+	BusyRetries       int
+	BusyRetryInterval time.Duration
 }
 
-// NewClient 用合理默认值构造客户端。超时给足：Mira 历史上跑过 8 分钟以上。
+// NewClient 用合理默认值构造客户端。
+//
+// RunTimeout 必须按实测最长耗时留足余量：Mira 中位约 16 分钟但最长到过 44 分钟，
+// 且环境排队（503 environment_busy）还会额外拖时间。定成 90 分钟——真正的上限应该由
+// context 兜底，超时只用来兜"任务卡死不返回"这种情况，不能把还在正常跑的任务判死。
 func NewClient(baseURL string) *Client {
 	return &Client{
 		BaseURL:      strings.TrimRight(baseURL, "/"),
 		HTTP:         &http.Client{Timeout: 30 * time.Second},
-		PollInterval: 15 * time.Second,
-		RunTimeout:   40 * time.Minute,
+		PollInterval:      15 * time.Second,
+		RunTimeout:        90 * time.Minute,
+		BusyRetries:       40,
+		BusyRetryInterval: 45 * time.Second,
 	}
 }
 
@@ -127,14 +137,39 @@ func (c *Client) Submit(ctx context.Context, suite, key string) (string, error) 
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Idempotency-Key", key)
 
-	response, err := c.HTTP.Do(request)
-	if err != nil {
-		return "", err
+	// 环境被占用（503 environment_busy）时会话不会被创建，等一会儿用同一个幂等键重试即可。
+	// 这是环境排队，不是业务失败，所以在这里原地等，而不是把整批判成失败。
+	var response *http.Response
+	for attempt := 0; ; attempt++ {
+		attemptResponse, err := c.HTTP.Do(request)
+		if err != nil {
+			return "", err
+		}
+		if attemptResponse.StatusCode == http.StatusServiceUnavailable && attempt < c.BusyRetries {
+			_, _ = io.Copy(io.Discard, io.LimitReader(attemptResponse.Body, 1<<16))
+			_ = attemptResponse.Body.Close()
+			select {
+			case <-ctx.Done():
+				return "", ctx.Err()
+			case <-time.After(c.BusyRetryInterval):
+			}
+			// 请求体已被读取，需要重建。
+			request = request.Clone(ctx)
+			request.Body = io.NopCloser(strings.NewReader(string(body)))
+			continue
+		}
+		response = attemptResponse
+		break
 	}
 	defer func() { _ = response.Body.Close() }()
 	payload, _ := io.ReadAll(io.LimitReader(response.Body, 1<<16))
 	if response.StatusCode != http.StatusAccepted && response.StatusCode != http.StatusOK &&
 		response.StatusCode != http.StatusCreated {
+		// 环境占用耗尽重试次数时给出能看懂的说明，别让邮件里出现裸 503。
+		if response.StatusCode == http.StatusServiceUnavailable {
+			return "", fmt.Errorf("环境占用，重试 %d 次仍未释放（HTTP 503）: %s",
+				c.BusyRetries, strings.TrimSpace(string(payload)))
+		}
 		return "", fmt.Errorf("接单失败 HTTP %d: %s", response.StatusCode, strings.TrimSpace(string(payload)))
 	}
 	var receipt accepted
@@ -265,7 +300,10 @@ func (c *Client) runOne(ctx context.Context, batch *Batch, suite Suite) RunSumma
 		}
 		if time.Now().After(deadline) {
 			summary.Status = StatusError
-			summary.Error = fmt.Sprintf("等待超时（%s 仍未进入终态）", c.RunTimeout)
+			// 明确写出「仍在运行」而不是失败的措辞：这类结果不代表业务失败，
+			// 只代表执行器等不下去了，邮件里要能区分开。
+			summary.Error = fmt.Sprintf("等待超时（已等 %s，CWT 侧状态仍为 %s）",
+				c.RunTimeout, summary.Stage)
 			return summary
 		}
 		select {

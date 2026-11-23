@@ -156,17 +156,65 @@ func TestClientRunOneReachesTerminal(t *testing.T) {
 
 func TestClientRunOneHandlesSubmitFailure(t *testing.T) {
 	fake := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	defer fake.Close()
+
+	client := NewClient(fake.URL)
+	client.BusyRetries = 0
+	summary := client.runOne(context.Background(), &Batch{Dir: t.TempDir(), Key: "k"}, Suite{ID: "ida"})
+	if summary.Status != StatusError {
+		t.Fatalf("提交失败应为 error，实际 %q", summary.Status)
+	}
+	if !strings.Contains(summary.Error, "500") {
+		t.Fatalf("错误信息应包含状态码: %q", summary.Error)
+	}
+}
+
+// 503 environment_busy 是环境排队，重试后应当能正常接单，而不是直接判失败。
+func TestSubmitRetriesOnEnvironmentBusy(t *testing.T) {
+	attempts := 0
+	fake := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts < 3 {
+			http.Error(w, "environment_busy", http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+		_, _ = w.Write([]byte(`{"run_id":"run-after-retry"}`))
+	}))
+	defer fake.Close()
+
+	client := NewClient(fake.URL)
+	client.BusyRetryInterval = time.Millisecond
+	runID, err := client.Submit(context.Background(), "ida", "k")
+	if err != nil {
+		t.Fatalf("重试后应成功: %v", err)
+	}
+	if runID != "run-after-retry" {
+		t.Fatalf("run_id 不对: %q", runID)
+	}
+	if attempts != 3 {
+		t.Fatalf("应重试到第 3 次成功，实际尝试 %d 次", attempts)
+	}
+}
+
+// 重试耗尽后要给出能看懂的说明，而不是裸 503。
+func TestSubmitReportsBusyExhausted(t *testing.T) {
+	fake := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "environment_busy", http.StatusServiceUnavailable)
 	}))
 	defer fake.Close()
 
 	client := NewClient(fake.URL)
-	summary := client.runOne(context.Background(), &Batch{Dir: t.TempDir(), Key: "k"}, Suite{ID: "ida"})
-	if summary.Status != StatusError {
-		t.Fatalf("提交失败应为 error，实际 %q", summary.Status)
+	client.BusyRetries = 2
+	client.BusyRetryInterval = time.Millisecond
+	_, err := client.Submit(context.Background(), "ida", "k")
+	if err == nil {
+		t.Fatal("重试耗尽应报错")
 	}
-	if !strings.Contains(summary.Error, "503") {
-		t.Fatalf("错误信息应包含状态码: %q", summary.Error)
+	if !strings.Contains(err.Error(), "环境占用") {
+		t.Fatalf("错误应说明是环境占用: %v", err)
 	}
 }
 
@@ -212,5 +260,15 @@ func TestNewBatchKeyIsUnique(t *testing.T) {
 	}
 	if first.keyFor("ida") == first.keyFor("mira") {
 		t.Fatal("同一批次内不同 suite 的键应不同")
+	}
+}
+
+// 超时不能设得比实测最长耗时还短：Mira 最长到过 44 分钟，若 RunTimeout 小于它，
+// 明明还在正常跑的任务会被判成失败。
+func TestRunTimeoutCoversObservedLongest(t *testing.T) {
+	client := NewClient("http://example")
+	const longestObserved = 45 * time.Minute
+	if client.RunTimeout <= longestObserved {
+		t.Fatalf("RunTimeout=%s 不足以覆盖实测最长耗时 %s", client.RunTimeout, longestObserved)
 	}
 }

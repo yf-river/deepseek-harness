@@ -3,6 +3,8 @@ package main
 import (
 	"testing"
 	"time"
+
+	"chainweaver-studio/robot"
 )
 
 func TestParseSchedule(t *testing.T) {
@@ -153,5 +155,15 @@ func TestAsSuites(t *testing.T) {
 	suites := settings.asSuites()
 	if len(suites) != 2 || suites[1].ID != "mira" || suites[1].Name != "Mira" {
 		t.Fatalf("转换结果不对: %+v", suites)
+	}
+}
+
+// 单流程与整批的超时必须递进，否则 context 先取消会让结论变成含糊的「已取消」。
+func TestRunnerTimeoutsAreLayered(t *testing.T) {
+	if suiteTimeout <= robot.NewClient("http://example").RunTimeout {
+		t.Fatalf("suiteTimeout=%s 必须大于 client 的 RunTimeout", suiteTimeout)
+	}
+	if batchTimeout <= suiteTimeout {
+		t.Fatalf("batchTimeout=%s 必须大于 suiteTimeout=%s", batchTimeout, suiteTimeout)
 	}
 }
