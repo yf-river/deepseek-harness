@@ -192,13 +192,16 @@ a.nav-tab {
 .back-link:hover svg { transform: translateX(-2px); }
 
 /* ── 主体 ── */
-/* 内容列：整页共用同一条左右边线。之前每个卡片各自限宽 720 并贴左，
-   宽屏下右侧留下大片空白，看起来像是内容没排满。
-   现在由容器统一限宽居中，标题、卡片、列表都对齐到同一条线。 */
 .app-main {
+  padding: 24px 32px 40px;
+}
+
+/* 只有详情页居中对齐：首页保持大卡片铺开的列表式。
+   详情内容窄，居中更易读；首页卡片本来就宽，居中反而空。 */
+#view-env,
+#view-robot {
   max-width: 960px;
   margin: 0 auto;
-  padding: 24px 32px 40px;
 }
 
 /* 页面标题：只说这一页是什么，不复述页头的副标题。 */
@@ -222,19 +225,8 @@ a.nav-tab {
   gap: 16px;
 }
 
-/* 环境管理与机器人并排：两块各一张卡片，并排比上下堆叠更紧凑。 */
-.side-by-side {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: start;
-  gap: 16px;
-}
-.side-by-side .site-grid { grid-template-columns: 1fr; }
-/* 并排时左右两列各自的区块标题共用同一基线，不用额外间距 */
-.side-by-side .section-title { margin-top: 28px; }
 
 @media (max-width: 980px) {
-  .side-by-side { grid-template-columns: 1fr; }
 }
 
 .site-card {
