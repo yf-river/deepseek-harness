@@ -48,10 +48,12 @@
 
     <p class="loading" id="loading">正在加载站点清单…</p>
 
-    <!-- 环境管理区块：位于全部站点与机器人之间 -->
-    <h2 class="page-title section-title">环境管理</h2>
-
-    <div class="site-grid">
+    <!-- 环境管理与机器人并排：两者各只有一张卡片，
+         并排能落在同一行，避免单个宽卡片内部右侧大面积留白 -->
+    <div class="side-by-side">
+      <section class="side-col">
+        <h2 class="page-title section-title">环境管理</h2>
+        <div class="site-grid">
       <button class="site-card" id="env-entry" type="button" aria-controls="view-env"
               title="查看与管理 ChainWeaver Env 环境">
         <span class="site-card-head">
@@ -78,12 +80,12 @@
           <span class="site-go">查看 →</span>
         </span>
       </button>
-    </div>
+        </div>
+      </section>
 
-    <!-- 机器人区块：与「全部站点」平级，卡片点进去看设置与运行记录 -->
-    <h2 class="page-title section-title">机器人</h2>
-
-    <div class="site-grid">
+      <section class="side-col">
+        <h2 class="page-title section-title">机器人</h2>
+        <div class="site-grid">
       <button class="site-card" id="robot-entry" type="button" aria-controls="view-robot"
               title="查看机器人的设置与运行记录">
         <span class="site-card-head">
@@ -112,7 +114,10 @@
           <span class="site-go">查看 →</span>
         </span>
       </button>
+        </div>
+      </section>
     </div>
+
   </main>
 
 

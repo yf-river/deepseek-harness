@@ -192,7 +192,12 @@ a.nav-tab {
 .back-link:hover svg { transform: translateX(-2px); }
 
 /* ── 主体 ── */
+/* 内容列：整页共用同一条左右边线。之前每个卡片各自限宽 720 并贴左，
+   宽屏下右侧留下大片空白，看起来像是内容没排满。
+   现在由容器统一限宽居中，标题、卡片、列表都对齐到同一条线。 */
 .app-main {
+  max-width: 960px;
+  margin: 0 auto;
   padding: 24px 32px 40px;
 }
 
@@ -215,6 +220,21 @@ a.nav-tab {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 16px;
+}
+
+/* 环境管理与机器人并排：两块各一张卡片，并排比上下堆叠更紧凑。 */
+.side-by-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 16px;
+}
+.side-by-side .site-grid { grid-template-columns: 1fr; }
+/* 并排时左右两列各自的区块标题共用同一基线，不用额外间距 */
+.side-by-side .section-title { margin-top: 28px; }
+
+@media (max-width: 980px) {
+  .side-by-side { grid-template-columns: 1fr; }
 }
 
 .site-card {
@@ -391,7 +411,6 @@ a.site-card {
 
 /* ── 机器人页 ── */
 .robot-card {
-  max-width: 720px;
   padding: 20px 22px 16px;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -702,7 +721,6 @@ a.site-card {
 
 /* ── 执行记录 ── */
 .history {
-  max-width: 720px;
   margin-top: 24px;
   padding: 16px 20px 12px;
   background: var(--surface);
@@ -849,7 +867,6 @@ a.site-card {
   display: flex;
   align-items: center;
   gap: 28px;
-  max-width: 720px;
   padding: 14px 20px;
   margin-bottom: 16px;
   background: var(--surface);
@@ -871,7 +888,6 @@ a.site-card {
 .env-list {
   display: flex;
   flex-direction: column;
-  max-width: 720px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -924,7 +940,6 @@ a.site-card {
 }
 
 .env-error {
-  max-width: 720px;
   margin: 12px 0 0;
   padding: 10px 14px;
   border-radius: 6px;
@@ -944,7 +959,6 @@ a.site-card {
 
 
 .env-ops {
-  max-width: 720px;
   margin-top: 16px;
   padding: 16px 20px 12px;
   background: var(--surface);
