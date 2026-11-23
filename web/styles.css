@@ -1101,3 +1101,7 @@ a.site-card {
 /* 分页栏在标题行右侧，与标题同基线，不加分割线 */
 .env-ops .pager,
 .history .pager { margin-left: auto; }
+
+/* 失败原因与处理建议：颜色区分「发生了什么」和「可以怎么做」 */
+.env-op-msg.is-error { color: var(--red); }
+.env-op-msg.is-hint { color: var(--muted-2); }

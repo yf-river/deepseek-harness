@@ -344,9 +344,20 @@ function renderOperations(pool) {
     head.appendChild(el('span', 'env-op-time', beijingTime(op.started_at || op.created_at) || '-'))
     row.appendChild(head)
 
-    // 执行中的任务显示当前步骤，失败时显示原因，成功时留空避免噪音。
-    const detail = op.message || (op.step ? `第 ${op.step} 阶段` : '')
-    if (detail) row.appendChild(el('p', 'env-op-msg', detail))
+    // cwe 的 message 只是当前阶段的通用描述（这批全是「正在恢复环境基线」），
+    // 对已结束的记录没有信息量，所以只在执行中显示。
+    if (op.status === 'running' || op.status === 'queued') {
+      const detail = op.message || (op.step ? `第 ${op.step} 阶段` : '')
+      if (detail) row.appendChild(el('p', 'env-op-msg', detail))
+    }
+    // 失败要给出真正的原因：cwe 把它放在 error.message，
+    // 处理建议在 error.next_action，而不是那句通用的 message。
+    if (op.status === 'failed' && op.error) {
+      row.appendChild(el('p', 'env-op-msg is-error', op.error.message || '执行失败'))
+      if (op.error.nextAction) {
+        row.appendChild(el('p', 'env-op-msg is-hint', op.error.nextAction))
+      }
+    }
     envEl.opsList.appendChild(row)
   })
 }

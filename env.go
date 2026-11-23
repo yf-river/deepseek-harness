@@ -33,6 +33,16 @@ type envOperation struct {
 	CreatedAt   string `json:"created_at"`
 	StartedAt   string `json:"started_at"`
 	FinishedAt  string `json:"finished_at"`
+	// Error 是失败时的具体原因与建议动作，cwe 只在这里给出可读说明。
+	Error *envOperationError `json:"error"`
+}
+
+// envOperationError 是失败原因。message 说明发生了什么，
+// next_action 说明调用方可以怎么处理，两者都有才是完整信息。
+type envOperationError struct {
+	Code       string `json:"code"`
+	Message    string `json:"message"`
+	NextAction string `json:"next_action"`
 }
 
 // envRecord 是一个环境的持久化状态。
