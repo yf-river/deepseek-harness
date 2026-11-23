@@ -9,21 +9,21 @@ set -euo pipefail
 
 TARGET="${1:-}"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INSTALL_DIR="/opt/chainweaver-portal"
-BIN="chainweaver-portal"
+INSTALL_DIR="/opt/chainweaver-studio"
+BIN="chainweaver-studio"
 
 case "$TARGET" in
   local)
     HOST_SSH=""
     LISTEN="9.134.129.162:18094"
-    UNIT_SRC="$PROJECT_DIR/deploy/chainweaver-portal.local.service"
-    UNIT_DST="/etc/systemd/system/chainweaver-portal-local.service"
+    UNIT_SRC="$PROJECT_DIR/deploy/chainweaver-studio.local.service"
+    UNIT_DST="/etc/systemd/system/chainweaver-studio-local.service"
     ;;
   40.247)
     HOST_SSH="192.168.40.247"
     LISTEN="192.168.40.247:18090"
-    UNIT_SRC="$PROJECT_DIR/deploy/chainweaver-portal.service"
-    UNIT_DST="/etc/systemd/system/chainweaver-portal.service"
+    UNIT_SRC="$PROJECT_DIR/deploy/chainweaver-studio.service"
+    UNIT_DST="/etc/systemd/system/chainweaver-studio.service"
     ;;
   *)
     echo "用法: $0 {local|40.247}" >&2

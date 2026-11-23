@@ -1,13 +1,13 @@
 [Unit]
 Description=ChainWeaver portal — unified entry for chainweaver-test and chainweaver-flow
-Documentation=https://git.code.tencent.com/ChainWeaver/chainweaver-portal
+Documentation=https://git.code.tencent.com/ChainWeaver/chainweaver-studio
 After=network-online.target chainweaver-test.service chainweaver-flow.service
 Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/chainweaver-portal
-ExecStart=/opt/chainweaver-portal/chainweaver-portal -config /opt/chainweaver-portal/config/sites.yaml -listen 192.168.40.247:18090
+WorkingDirectory=/opt/chainweaver-studio
+ExecStart=/opt/chainweaver-studio/chainweaver-studio -config /opt/chainweaver-studio/config/sites.yaml -listen 192.168.40.247:18090
 Restart=on-failure
 RestartSec=3s
 TimeoutStopSec=20

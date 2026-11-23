@@ -1,4 +1,5 @@
 .harness/
+# 编译产物
 chainweaver-studio
-/chainweaver-portal
+# 运行产物（机器人批次、settings.json）
 run/

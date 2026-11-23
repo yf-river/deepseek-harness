@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/chainweaver-portal
-ExecStart=/opt/chainweaver-portal/chainweaver-portal -config /opt/chainweaver-portal/config/sites.yaml -listen 9.134.129.162:18094
+WorkingDirectory=/opt/chainweaver-studio
+ExecStart=/opt/chainweaver-studio/chainweaver-studio -config /opt/chainweaver-studio/config/sites.yaml -listen 9.134.129.162:18094
 Restart=on-failure
 RestartSec=3s
 TimeoutStopSec=20

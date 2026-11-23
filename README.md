@@ -7,8 +7,8 @@
 
 | 环境 | 地址 | 监听 | systemd unit |
 |---|---|---|---|
-| 本机（开发验证） | <http://9.134.129.162:18094/> | `9.134.129.162:18094` | `chainweaver-portal-local.service` |
-| 40.247（发布） | <http://192.168.40.247:18090/> | `192.168.40.247:18090` | `chainweaver-portal.service` |
+| 本机（开发验证） | <http://9.134.129.162:18094/> | `9.134.129.162:18094` | `chainweaver-studio-local.service` |
+| 40.247（发布） | <http://192.168.40.247:18090/> | `192.168.40.247:18090` | `chainweaver-studio.service` |
 
 改完先在本机 `./deploy/deploy.sh local` 跑通验收，再 `./deploy/deploy.sh 40.247` 推发布机。
 两份用的是同一个二进制、同一份 `config/sites.yaml`，差异只在监听地址与 unit 文件。
@@ -27,7 +27,7 @@
 ## 结构
 
 ```
-chainweaver-portal/
+chainweaver-studio/
 ├── main.go                 # 配置加载、健康探测、路由、安全头
 ├── favicon.go              # 内嵌 SVG 图标
 ├── main_test.go            # 配置校验、健康探测、路由与安全头测试
@@ -78,10 +78,10 @@ chainweaver-portal/
 ## 本地开发与验证
 
 ```bash
-cd /data/ida/ai/chainweaver-portal
+cd /data/ida/ai/chainweaver-studio
 go vet ./... && go test ./...        # 单元测试
-go build -o /tmp/chainweaver-portal .
-/tmp/chainweaver-portal -config config/sites.yaml -listen 127.0.0.1:18090
+go build -o /tmp/chainweaver-studio .
+/tmp/chainweaver-studio -config config/sites.yaml -listen 127.0.0.1:18090
 curl -s http://127.0.0.1:18090/api/sites
 ```
 
@@ -91,8 +91,8 @@ curl -s http://127.0.0.1:18090/api/sites
 
 1. 在 `config/sites.yaml` 的 `sites` 下追加一条，`key` / `label` / `url` 必填，`icon` 可选
    `test`、`flow`、`dashboard`，其它值走默认图标。
-2. 同步本仓 `config/sites.yaml` 与部署机 `/opt/chainweaver-portal/config/sites.yaml`。
-3. `systemctl restart chainweaver-portal`。配置有语法错误或缺字段时进程会启动失败并打出
+2. 同步本仓 `config/sites.yaml` 与部署机 `/opt/chainweaver-studio/config/sites.yaml`。
+3. `systemctl restart chainweaver-studio`。配置有语法错误或缺字段时进程会启动失败并打出
    具体原因，不会带残缺清单上线。
 
 ## 部署
@@ -101,12 +101,12 @@ curl -s http://127.0.0.1:18090/api/sites
 任何一步失败就退出，不会把坏版本留在目标机上。
 
 ```bash
-cd /data/ida/ai/chainweaver-portal
+cd /data/ida/ai/chainweaver-studio
 ./deploy/deploy.sh local      # 本机 9.134.129.162:18094，unit 名带 -local 后缀
 ./deploy/deploy.sh 40.247     # 远端 192.168.40.247:18090
 ```
 
-两种目标的实际动作一致：装到 `/opt/chainweaver-portal`（二进制 + `config/sites.yaml`），
+两种目标的实际动作一致：装到 `/opt/chainweaver-studio`（二进制 + `config/sites.yaml`），
 unit 落到 `/etc/systemd/system/`，`enable` + `restart`，然后对 `/`、`/api/config`、
 `/api/sites`、`/assets/*`、`/favicon.svg` 逐个查 200。
 
@@ -125,7 +125,7 @@ unit 里都是 `Restart=on-failure`；`After=` 只引用 `network-online.target`
 ### 机器人验收（本机）
 
 - 真实跑通一次完整批次：提交 `ida` → 轮询到终态 → 判定 FAILED → 生成邮件正文与主题 → 演练模式不发信。
-  产物在 `/opt/chainweaver-portal/run/robot/cwt-robot-819677770/`，`mail_body.md` 的表格、时间、失败原因
+  产物在 `/opt/chainweaver-studio/run/robot/cwt-robot-819677770/`，`mail_body.md` 的表格、时间、失败原因
   与 CWT 详情接口逐项对账一致。
 - 生成的主题：`[CWT] 主流程巡检 FAILED - 2026-11-23`；正文含「0 条通过，1 条失败」、
   北京时间区间、耗时 `3分12秒`、已通过验证数 `2`、看板直达链接。
