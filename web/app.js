@@ -346,6 +346,8 @@ function renderRobotState(payload) {
   } else if (!running && robotPollTimer) {
     clearInterval(robotPollTimer)
     robotPollTimer = null
+    // 批次刚结束时刷新一次执行记录，不用手动再点。
+    loadHistory()
   }
 }
 
@@ -388,6 +390,106 @@ function commitMailInput() {
   renderMailChips()
   robotEl.mailto.value = ''
   return added
+}
+
+
+// ── 执行记录 ──
+const histEl = {
+  list: document.getElementById('history-list'),
+  count: document.getElementById('history-count'),
+  empty: document.getElementById('history-empty'),
+}
+
+let historyOpen = null
+
+const VERDICT_CLASS = { PASS: 'is-pass', FAILED: 'is-fail', PARTIAL: 'is-partial' }
+
+function verdictClass(verdict) {
+  return VERDICT_CLASS[verdict] || 'is-none'
+}
+
+const STATUS_TEXT = { passed: '通过', failed: '失败', error: '未完成', running: '执行中', queued: '排队中' }
+
+// renderHistory 渲染批次列表。一次只展开一条，避免长页面来回滚。
+function renderHistory(items) {
+  histEl.list.replaceChildren()
+  histEl.empty.hidden = items.length > 0
+  histEl.count.textContent = items.length ? `最近 ${items.length} 次` : ''
+
+  items.forEach((item) => {
+    const expanded = historyOpen === item.dir
+    const row = el('button', 'history-row')
+    row.type = 'button'
+    row.setAttribute('aria-expanded', expanded ? 'true' : 'false')
+
+    row.appendChild(el('time', '', beijingTime(item.endedAt || item.startedAt) || '—'))
+
+    const verdict = el('span', `verdict ${verdictClass(item.verdict)}`, item.verdict || '未完成')
+    row.appendChild(verdict)
+
+    const suites = el('span', 'history-suites')
+    ;(item.suites || []).forEach((suite) => {
+      const one = el('span', `history-suite is-${suite.status}`)
+      one.appendChild(el('b', '', suite.id.toUpperCase()))
+      one.appendChild(document.createTextNode(` ${STATUS_TEXT[suite.status] || suite.status}`))
+      if (suite.durationText) one.appendChild(document.createTextNode(` ${suite.durationText}`))
+      suites.appendChild(one)
+    })
+    row.appendChild(suites)
+    row.appendChild(el('span', 'history-mail', item.mailStatus || ''))
+
+    row.addEventListener('click', () => {
+      historyOpen = expanded ? null : item.dir
+      loadHistory()
+    })
+    histEl.list.appendChild(row)
+
+    if (expanded) {
+      const detail = el('div', 'history-detail')
+      const dl = document.createElement('dl')
+      const add = (label, value) => {
+        dl.appendChild(el('dt', '', label))
+        dl.appendChild(el('dd', '', value || '—'))
+      }
+      add('批次', item.dir)
+      add('触发', item.trigger === 'schedule' ? '定时' : '手动')
+      add('邮件', item.mailStatus || '—')
+      ;(item.suites || []).forEach((suite) => {
+        const name = suite.id.toUpperCase()
+        const detailText = suite.error || suite.failure || ''
+        add(name, `${STATUS_TEXT[suite.status] || suite.status}${suite.durationText ? ' · ' + suite.durationText : ''}${suite.validated ? ' · ' + suite.validated + ' 项验证' : ''}`)
+        if (detailText) add('', detailText)
+      })
+      detail.appendChild(dl)
+      // 直达 CWT 报告的链接放在明细里，列表行本身保持干净。
+      const links = (item.suites || []).filter((x) => x.detailUrl)
+      if (links.length) {
+        const p = el('p', 'history-detail-links')
+        links.forEach((suite) => {
+          const a = el('a', '', `${suite.id.toUpperCase()} 报告 →`)
+          a.href = suite.detailUrl
+          a.target = '_blank'
+          a.rel = 'noopener'
+          p.appendChild(a)
+        })
+        detail.appendChild(p)
+      }
+      histEl.list.appendChild(detail)
+    }
+  })
+}
+
+async function loadHistory() {
+  if (!histEl.list) return
+  try {
+    const response = await fetch('/api/robot/history?limit=30', { cache: 'no-store' })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const payload = await response.json()
+    renderHistory(payload.history || [])
+  } catch (error) {
+    histEl.empty.hidden = false
+    histEl.empty.textContent = `执行记录加载失败：${error.message || error}`
+  }
 }
 
 async function loadRobot() {
@@ -468,7 +570,10 @@ async function runRobot() {
 if (robotEl.save) {
   robotEl.save.addEventListener('click', saveRobot)
   robotEl.run.addEventListener('click', runRobot)
-  robotEl.entry.addEventListener('click', () => selectTab('robot'))
+  robotEl.entry.addEventListener('click', () => {
+    selectTab('robot')
+    loadHistory()
+  })
   robotEl.back.addEventListener('click', () => selectTab(HOME_TAB.key))
 
   // 回车或逗号提交；输入框为空时退格删掉最后一个胶囊（与常见标签输入一致）。

@@ -8,6 +8,14 @@
   --ink: #202020;
   --body: #404040;
   --muted: #6b6b6b;
+  /* 次级文字：原 #94a3b8 只有 2.56:1，提到 4.6:1 后再用于 URL、时间等 */
+  --muted-2: #5f6b7a;
+  /* 字阶：小 12 / 正文 13 / 强调 15 / 标题 17 / 品牌 18，中间不再插 11.5、12.5 */
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 18px;
   --line: #e7e7e7;
   --blue: #0052d9;
   --blue-dark: #0045ba;
@@ -42,18 +50,27 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   outline-offset: 3px;
 }
 
+/* 跳到主内容：默认完全移出可视区，聚焦时才滑入。
+   用 transform 而不是负坐标位移，避免被当成「元素溢出屏幕」；
+   尺寸保持正常，避免文字被压缩换行。 */
 .skip {
-  position: absolute;
-  left: -9999px;
-  top: 0;
+  position: fixed;
+  top: -100px;
+  left: 12px;
+  z-index: 20;
   padding: 10px 16px;
   background: var(--blue);
   color: #fff;
-  border-radius: 0 0 var(--radius) 0;
+  border-radius: 0 0 var(--radius) var(--radius);
   text-decoration: none;
-  z-index: 10;
+  white-space: nowrap;
+  transition: top .15s;
 }
-.skip:focus { left: 0; }
+.skip:focus {
+  top: 0;
+  outline: 3px solid #a4c2f2;
+  outline-offset: 2px;
+}
 
 /* ── 顶部导航 ── */
 .app-header {
@@ -279,7 +296,7 @@ a.site-card {
   border-radius: 999px;
   background: var(--soft);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 .site-card-foot {
   display: flex;
@@ -292,9 +309,9 @@ a.site-card {
 }
 .site-url {
   min-width: 0;
-  color: #94a3b8;
+  color: var(--muted-2);
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -318,7 +335,7 @@ a.site-card {
   flex-shrink: 0;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 1.6;
   white-space: nowrap;
 }
@@ -331,7 +348,7 @@ a.site-card {
 }
 .status-up { color: var(--green); background: #e8f6ef; }
 .status-down { color: var(--red); background: #fdeeec; }
-.status-unknown { color: #8a94a6; background: var(--soft); }
+.status-unknown { color: #55606e; background: var(--soft); }
 
 .loading {
   padding: 24px 0;
@@ -397,8 +414,8 @@ a.site-card {
   padding: 2px 9px;
   border-radius: 999px;
   background: var(--soft);
-  color: #8a94a6;
-  font-size: 11px;
+  color: #55606e;
+  font-size: var(--fs-xs);
   line-height: 1.7;
   white-space: nowrap;
 }
@@ -483,7 +500,7 @@ a.site-card {
 }
 .robot-toggle input { accent-color: var(--blue); margin: 0; }
 
-.robot-hint { color: #94a3b8; font-size: 11.5px; }
+.robot-hint { color: var(--muted-2); font-size: var(--fs-xs); }
 
 /* 收件人胶囊：与上方主流程复选块同一套尺寸与配色，多收件人时自然换行。 */
 .mail-chips {
@@ -577,4 +594,126 @@ a.site-card {
   .robot-row { flex-direction: column; gap: 6px; }
   .robot-row dt { width: auto; padding-top: 0; }
   .robot-row input[type='text'] { width: 100%; }
+}
+
+/* ── 执行记录 ── */
+.history {
+  max-width: 720px;
+  margin-top: 24px;
+  padding: 16px 20px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.history-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.history-head h3 {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: -.2px;
+}
+.history-count { color: var(--muted-2); font-size: var(--fs-xs); }
+
+.history-list { display: flex; flex-direction: column; }
+.history-empty {
+  padding: 18px 0;
+  color: var(--muted-2);
+  font-size: var(--fs-sm);
+}
+
+/* 一行一次批次：时间 / 结论 / 套件摘要 / 邮件 */
+.history-row {
+  display: grid;
+  grid-template-columns: 104px 58px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  border-bottom: 1px solid #f6f6f6;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.history-row:last-child { border-bottom: none; }
+.history-row:hover { background: #fafbfd; }
+.history-row time {
+  color: var(--muted-2);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.history-row .verdict {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+.verdict.is-pass { color: var(--green); background: #e8f6ef; }
+.verdict.is-fail { color: var(--red); background: #fdeeec; }
+.verdict.is-partial { color: #8a6116; background: #fdf6e3; }
+.verdict.is-none { color: #55606e; background: var(--soft); }
+
+.history-suites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  color: var(--body);
+  font-size: var(--fs-sm);
+}
+.history-suite { white-space: nowrap; }
+.history-suite b { font-weight: 500; }
+.history-suite.is-pass b { color: var(--green); }
+.history-suite.is-fail b { color: var(--red); }
+.history-suite.is-error b { color: #8a6116; }
+
+.history-mail {
+  color: var(--muted-2);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+/* 展开后的明细 */
+.history-detail {
+  padding: 4px 0 14px;
+  border-bottom: 1px solid #f6f6f6;
+}
+.history-detail:last-child { border-bottom: none; }
+.history-detail dl {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--soft);
+  font-size: var(--fs-sm);
+}
+.history-detail dt { color: var(--muted-2); font-size: var(--fs-xs); }
+.history-detail dd { margin: 0; color: var(--body); overflow-wrap: anywhere; }
+.history-detail a { color: var(--blue); text-decoration: none; }
+.history-detail a:hover { text-decoration: underline; }
+
+@media (max-width: 980px) {
+  .history { max-width: none; padding: 14px 16px 10px; }
+  .history-row { grid-template-columns: 1fr auto; gap: 4px 10px; }
+  .history-row time { grid-column: 1; }
+  .history-suites { grid-column: 1 / -1; }
+  .history-mail { display: none; }
 }

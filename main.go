@@ -21,6 +21,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -282,6 +283,27 @@ func (s *server) serveRobotSettings(writer http.ResponseWriter, request *http.Re
 	})
 }
 
+// serveRobotHistory 返回最近的执行历史，最新的在前。
+func (s *server) serveRobotHistory(writer http.ResponseWriter, request *http.Request) {
+	if s.robot == nil {
+		http.NotFound(writer, request)
+		return
+	}
+	if request.Method != http.MethodGet {
+		writer.Header().Set("Allow", http.MethodGet)
+		http.Error(writer, "只接受 GET", http.StatusMethodNotAllowed)
+		return
+	}
+	// limit 默认 30，够看两周；上限 200 防止一次读太多目录。
+	limit := 30
+	if raw := request.URL.Query().Get("limit"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+			limit = min(parsed, 200)
+		}
+	}
+	writeJSON(writer, map[string]any{"history": s.robot.loadHistory(limit)})
+}
+
 // serveRobotRun 手动触发一次巡检。POST 才接受，触发后立即返回，进度靠轮询 /api/robot。
 func (s *server) serveRobotRun(writer http.ResponseWriter, request *http.Request) {
 	if s.robot == nil {
@@ -314,6 +336,7 @@ func newMux(s *server) *http.ServeMux {
 	mux.HandleFunc("/api/sites", s.serveHealth)
 	mux.HandleFunc("/api/robot", s.serveRobot)
 	mux.HandleFunc("/api/robot/settings", s.serveRobotSettings)
+	mux.HandleFunc("/api/robot/history", s.serveRobotHistory)
 	mux.HandleFunc("/api/robot/run", s.serveRobotRun)
 	mux.Handle("/assets/", http.StripPrefix("/assets/", staticAssets()))
 	mux.HandleFunc("/favicon.svg", func(writer http.ResponseWriter, request *http.Request) {

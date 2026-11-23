@@ -132,6 +132,16 @@
         <button class="button" id="robot-run" type="button">立即执行一次</button>
       </footer>
     </section>
+
+    <!-- 执行记录：每次批次一行，点击展开看逐套件明细 -->
+    <section class="history" aria-labelledby="history-title">
+      <header class="history-head">
+        <h3 id="history-title">执行记录</h3>
+        <span class="history-count" id="history-count"></span>
+      </header>
+      <div class="history-list" id="history-list"></div>
+      <p class="history-empty" id="history-empty" hidden>还没有执行记录。</p>
+    </section>
   </main>
 </body>
 </html>
