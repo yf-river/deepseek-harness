@@ -80,7 +80,43 @@ function selectTab(key) {
     const node = document.getElementById(id)
     if (node) node.hidden = viewKey !== key
   })
+
+  // 把当前视图写进 hash：刷新停在同一页，前进/后退也能回到对应视图。
+  const hash = key === HOME_TAB.key ? '' : '#/' + (key === 'robot' ? 'robot' : key)
+  const target = hash || location.pathname
+  if (location.hash !== hash && location.pathname + location.hash !== target) {
+    history.pushState(null, '', target)
+  }
 }
+
+
+// ── 路由 ──
+// 视图状态放在 hash 里：刷新、收藏、前进后退都停在同一个页面。
+function currentRoute() {
+  const raw = location.hash.replace(/^#\/?/, '')
+  if (raw === 'robot') return { view: 'robot', robot: true }
+  return { view: HOME_TAB.key, robot: false }
+}
+
+// applyRoute 按当前 URL 同步选中态与视图，不写回 hash（避免循环）。
+function applyRoute() {
+  const route = currentRoute()
+  navTabs.querySelectorAll('.nav-tab').forEach((node) => {
+    const active = node.dataset.key === route.view
+    node.classList.toggle('active', active)
+    node.setAttribute('aria-selected', active ? 'true' : 'false')
+  })
+  Object.entries(VIEWS).forEach(([viewKey, id]) => {
+    const node = document.getElementById(id)
+    if (node) node.hidden = viewKey !== route.view
+  })
+  if (route.robot) {
+    loadRobot()
+    loadHistory()
+  }
+}
+
+window.addEventListener('hashchange', applyRoute)
 
 function renderTabs() {
   navTabs.replaceChildren()
@@ -110,7 +146,7 @@ function renderTabs() {
     navTabs.appendChild(tab)
   })
 
-  selectTab(HOME_TAB.key)
+  // 这里只负责生成签，视图由 applyRoute 按 URL 决定，不在渲染时写路由。
 }
 
 function statusBadge(health) {
@@ -606,7 +642,10 @@ if (robotEl.save) {
     selectTab('robot')
     loadHistory()
   })
-  robotEl.back.addEventListener('click', () => selectTab(HOME_TAB.key))
+  robotEl.back.addEventListener('click', () => {
+    history.pushState(null, '', location.pathname)
+    applyRoute()
+  })
 
   // 回车或逗号提交；输入框为空时退格删掉最后一个胶囊（与常见标签输入一致）。
   robotEl.mailto.addEventListener('keydown', (event) => {
@@ -644,6 +683,8 @@ async function boot() {
 
     renderTabs()
     renderCards({})
+    // 按 URL 恢复视图，保证刷新后停在同一页。
+    applyRoute()
     loading.hidden = true
     loadHealth()
     // 首页的机器人卡片要显示状态，因此启动时就拉一次，不等用户点进详情。
