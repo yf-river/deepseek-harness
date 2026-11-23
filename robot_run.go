@@ -286,7 +286,8 @@ func (r *robotRunner) execute(trigger string) {
 		mailErr = err.Error()
 		log.Printf("机器人发信失败: %v", err)
 	} else if !r.config.SendMail {
-		mailStatus = "演练未发送"
+		// 只在不发信模式下才出现，说明当前是故意不发，不是发送失败。
+		mailStatus = "未发信（已关闭发信）"
 	}
 
 	final := r.update(func(s *robotState) {

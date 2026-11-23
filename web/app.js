@@ -204,7 +204,6 @@ const robotEl = {
   mailChips: document.getElementById('robot-mailto-chips'),
   enabled: document.getElementById('robot-enabled'),
   sendmail: document.getElementById('robot-sendmail'),
-  result: document.getElementById('robot-result'),
   save: document.getElementById('robot-save'),
   run: document.getElementById('robot-run'),
   entry: document.getElementById('robot-entry'),
@@ -283,39 +282,6 @@ function renderRobotState(payload) {
   robotEl.run.disabled = running
   robotEl.run.textContent = running ? '执行中…' : '立即执行一次'
 
-  // 结果区：跑完才显示；执行中显示进度。
-  if (running) {
-    const done = (state.results || []).filter((r) => ['passed', 'failed', 'error'].includes(r.status))
-    robotEl.result.hidden = false
-    robotEl.result.textContent = state.message || '正在执行…'
-    robotEl.result.className = 'robot-result'
-    if (done.length) {
-      robotEl.result.textContent = (state.results || []).map(
-        (r) => `${r.id}：${r.status === 'passed' ? '通过' : r.status === 'failed' ? '失败' : '未完成'}`
-      ).join(' · ')
-    }
-  } else if (state.verdict) {
-    const rows = (state.results || []).map((r) => {
-      const label = r.status === 'passed' ? '通过' : r.status === 'failed' ? '失败' : '未取得结果'
-      return `${r.id}：${label}${r.durationText ? ' · ' + r.durationText : ''}`
-    })
-    robotEl.result.hidden = false
-    robotEl.result.className = 'robot-result'
-    robotEl.result.textContent = rows.join(' · ')
-    if (state.mailStatus) {
-      robotEl.result.textContent += ` · 邮件${state.mailStatus}`
-    }
-    if (state.lastError) {
-      robotEl.result.textContent += ` · ${state.lastError}`
-    }
-  } else if (state.lastError) {
-    robotEl.result.hidden = false
-    robotEl.result.className = 'robot-result is-error'
-    robotEl.result.textContent = state.lastError
-  } else {
-    robotEl.result.hidden = true
-  }
-
   // 首页卡片同步显示同一份状态，用户不进详情也能看到上次结果。
   if (robotEl.entryStatus) {
     // 与站点卡片共用 .status 徽标：绿=正常、红=失败、灰=未执行。
@@ -359,6 +325,23 @@ function renderRobotState(payload) {
 }
 
 
+
+
+// toast 承接保存/触发这类短反馈，卡片里不再留一块常驻的结果区。
+let toastTimer = null
+function toast(message, isError) {
+  let node = document.getElementById('app-toast')
+  if (!node) {
+    node = el('div', 'app-toast')
+    node.id = 'app-toast'
+    node.setAttribute('role', 'status')
+    document.body.appendChild(node)
+  }
+  node.textContent = message
+  node.className = 'app-toast' + (isError ? ' is-error' : '') + ' is-visible'
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { node.className = 'app-toast' }, 2600)
+}
 
 // ── 时间输入 ──
 // 两个输入框拼成 HH:MM。输入过程中自动补齐与夹取范围，失焦时归一化。
@@ -592,13 +575,9 @@ async function saveRobot() {
     if (!response.ok) throw new Error(text || `HTTP ${response.status}`)
     await loadRobot()
     // 刷新会重写结果区，所以保存提示放在刷新之后写，确保用户看得见。
-    robotEl.result.hidden = false
-    robotEl.result.className = 'robot-result'
-    robotEl.result.textContent = '设置已保存' 
+    toast('设置已保存')
   } catch (error) {
-    robotEl.result.hidden = false
-    robotEl.result.className = 'robot-result is-error'
-    robotEl.result.textContent = `保存失败：${error.message || error}`
+    toast(`保存失败：${error.message || error}`, true)
   } finally {
     robotEl.save.disabled = false
   }
@@ -610,17 +589,13 @@ async function runRobot() {
     const response = await fetch('/api/robot/run', { method: 'POST' })
     const payload = await response.json().catch(() => ({}))
     if (response.status === 409) {
-      robotEl.result.hidden = false
-      robotEl.result.className = 'robot-result is-error'
-      robotEl.result.textContent = '已有批次在执行'
+      toast('已有批次在执行', true)
     } else if (!response.ok) {
       throw new Error(payload.message || `HTTP ${response.status}`)
     }
     await loadRobot()
   } catch (error) {
-    robotEl.result.hidden = false
-    robotEl.result.className = 'robot-result is-error'
-    robotEl.result.textContent = `触发失败：${error.message || error}`
+    toast(`触发失败：${error.message || error}`, true)
   }
 }
 
