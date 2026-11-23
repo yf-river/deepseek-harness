@@ -243,6 +243,19 @@ const envEl = {
   empty: document.getElementById('env-empty'),
   error: document.getElementById('env-error'),
   refresh: document.getElementById('env-refresh'),
+  deployBtn: document.getElementById('env-deploy'),
+  deployDialog: document.getElementById('env-deploy-dialog'),
+  deployForm: document.getElementById('env-deploy-form'),
+  deployCancel: document.getElementById('env-deploy-cancel'),
+  deploySubmit: document.getElementById('env-deploy-submit'),
+  deployDatabase: document.getElementById('env-deploy-database'),
+  deployVersion: document.getElementById('env-deploy-version'),
+  deployEnv: document.getElementById('env-deploy-env'),
+  deployTTL: document.getElementById('env-deploy-ttl'),
+  deployHint: document.getElementById('env-deploy-hint'),
+  opsList: document.getElementById('env-ops-list'),
+  opsCount: document.getElementById('env-ops-count'),
+  opsEmpty: document.getElementById('env-ops-empty'),
   back: document.getElementById('env-back'),
 }
 
@@ -321,6 +334,38 @@ function renderEnvPool(pool) {
       ? `${pool.unhealthy} 个环境异常`
       : `${pool.idle || 0} 个空闲 · ${pool.leased || 0} 个已租用`
   }
+  renderOperations(pool.recentOperations)
+}
+
+const OP_KIND_TEXT = { deploy: '部署', free: '释放', destroy: '销毁' }
+const OP_STATUS_TEXT = { queued: '排队中', running: '执行中', succeeded: '成功', failed: '失败' }
+
+// renderOperations 渲染 cwe 的部署/释放任务记录，最新的在前。
+function renderOperations(operations) {
+  if (!envEl.opsList) return
+  const items = operations || []
+  envEl.opsEmpty.hidden = items.length > 0
+  envEl.opsCount.textContent = items.length ? `最近 ${items.length} 条` : ''
+  envEl.opsList.replaceChildren()
+
+  items.forEach((op) => {
+    const row = el('div', 'env-op')
+
+    const head = el('div', 'env-op-head')
+    head.appendChild(el('span', 'env-op-kind', OP_KIND_TEXT[op.kind] || op.kind || '-'))
+    head.appendChild(el('span', 'env-op-env', op.environment || '-'))
+    const tone = op.status === 'succeeded' ? 'is-pass'
+      : op.status === 'failed' ? 'is-fail'
+      : op.status === 'running' ? 'is-running' : 'is-none'
+    head.appendChild(el('span', `verdict ${tone}`, OP_STATUS_TEXT[op.status] || op.status || '-'))
+    head.appendChild(el('span', 'env-op-time', beijingTime(op.started_at || op.created_at) || '-'))
+    row.appendChild(head)
+
+    // 执行中的任务显示当前步骤，失败时显示原因，成功时留空避免噪音。
+    const detail = op.message || (op.step ? `第 ${op.step} 阶段` : '')
+    if (detail) row.appendChild(el('p', 'env-op-msg', detail))
+    envEl.opsList.appendChild(row)
+  })
 }
 
 function shortID(value) {
@@ -355,7 +400,8 @@ async function freeEnv(env, button) {
       const text = await response.text()
       throw new Error(text || `HTTP ${response.status}`)
     }
-    toast(`已提交释放 ${env.name}`)
+    const receipt = await response.json().catch(() => ({}))
+    toast(receipt.alreadyReleased ? `${env.name} 已是释放状态` : `已提交释放 ${env.name}，恢复基线需要一段时间`)
     await loadEnv()
   } catch (error) {
     toast(`释放失败：${error.message || error}`, true)
@@ -363,8 +409,56 @@ async function freeEnv(env, button) {
   }
 }
 
+// submitDeploy 提交一次环境占用。cwe 返回 202 表示已接单，不是已部署完成。
+async function submitDeploy(event) {
+  event.preventDefault()
+  const payload = {
+    database: envEl.deployDatabase.value,
+    version: envEl.deployVersion.value.trim(),
+    env: envEl.deployEnv.value.trim(),
+    ttl: envEl.deployTTL.value.trim(),
+  }
+  if (!payload.database && !payload.env) {
+    envEl.deployHint.textContent = '数据库与环境名至少填一个。'
+    envEl.deployHint.classList.add('is-error')
+    return
+  }
+  envEl.deploySubmit.disabled = true
+  try {
+    const response = await fetch('/api/env/deploy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const text = await response.text()
+    if (!response.ok) throw new Error(text || `HTTP ${response.status}`)
+    envEl.deployDialog.close()
+    envEl.deployForm.reset()
+    envEl.deployHint.textContent = '数据库与环境名至少填一个。'
+    envEl.deployHint.classList.remove('is-error')
+    toast('已提交申请，部署需要数分钟')
+    await loadEnv()
+  } catch (error) {
+    envEl.deployHint.textContent = `申请失败：${error.message || error}`
+    envEl.deployHint.classList.add('is-error')
+  } finally {
+    envEl.deploySubmit.disabled = false
+  }
+}
+
 if (envEl.entry) {
   envEl.entry.addEventListener('click', () => selectTab('env'))
+  envEl.deployBtn.addEventListener('click', () => {
+    envEl.deployHint.textContent = '数据库与环境名至少填一个。'
+    envEl.deployHint.classList.remove('is-error')
+    envEl.deployDialog.showModal()
+  })
+  envEl.deployCancel.addEventListener('click', () => envEl.deployDialog.close())
+  envEl.deployForm.addEventListener('submit', submitDeploy)
+  // 点击遮罩关闭：dialog 内部点击不关闭，只处理落到 dialog 本身的点击。
+  envEl.deployDialog.addEventListener('click', (event) => {
+    if (event.target === envEl.deployDialog) envEl.deployDialog.close()
+  })
   envEl.refresh.addEventListener('click', loadEnv)
   envEl.back.addEventListener('click', () => {
     history.pushState(null, '', location.pathname)

@@ -135,12 +135,51 @@
       <div class="env-stat"><span class="env-stat-num" id="env-unhealthy">-</span><span class="env-stat-label">异常</span></div>
       <div class="env-summary-actions">
         <button class="button quiet" id="env-refresh" type="button">刷新</button>
+        <button class="button" id="env-deploy" type="button">申请环境</button>
       </div>
     </section>
 
     <section class="env-list" id="env-list" aria-label="环境列表"></section>
     <p class="history-empty" id="env-empty" hidden>没有环境记录。</p>
     <p class="env-error" id="env-error" hidden></p>
+
+    <!-- 申请环境：只给最必要的筛选项，默认按数据库类型选 -->
+    <dialog class="env-dialog" id="env-deploy-dialog" aria-labelledby="env-deploy-title">
+      <form id="env-deploy-form">
+        <header class="dialog-heading">
+          <h2 id="env-deploy-title">申请环境</h2>
+          <p>从环境池占用一个环境。部署完成后状态变为已租用。</p>
+        </header>
+        <div class="dialog-fields">
+          <label>数据库
+            <select id="env-deploy-database">
+              <option value="">不限</option>
+              <option value="mysql">MySQL</option>
+              <option value="oceanbase">OceanBase</option>
+              <option value="kingbase-pg">Kingbase</option>
+            </select>
+          </label>
+          <label>版本<input id="env-deploy-version" type="text" placeholder="如 v5.2.0_dev" autocomplete="off"></label>
+          <label>指定环境<input id="env-deploy-env" type="text" placeholder="留空则由池自动选择" autocomplete="off"></label>
+          <label>租约时长<input id="env-deploy-ttl" type="text" placeholder="如 4h" autocomplete="off"></label>
+        </div>
+        <p class="dialog-hint" id="env-deploy-hint">数据库与环境名至少填一个。</p>
+        <div class="dialog-actions">
+          <button class="button quiet" type="button" id="env-deploy-cancel">取消</button>
+          <button class="button" type="submit" id="env-deploy-submit">提交申请</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- 操作记录：cwe 的部署与释放任务 -->
+    <section class="env-ops" aria-labelledby="env-ops-title">
+      <header class="env-ops-head">
+        <h3 id="env-ops-title">操作记录</h3>
+        <span class="history-count" id="env-ops-count"></span>
+      </header>
+      <div class="env-ops-list" id="env-ops-list"></div>
+      <p class="history-empty" id="env-ops-empty" hidden>还没有操作记录。</p>
+    </section>
   </main>
 
   <!-- 机器人详情：设置与运行记录 -->

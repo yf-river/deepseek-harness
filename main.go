@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math/rand/v2"
 	"io"
 	"io/fs"
 	"log"
@@ -296,9 +297,102 @@ func (s *server) serveEnvFree(writer http.ResponseWriter, request *http.Request)
 	}
 	defer func() { _ = response.Body.Close() }()
 	body, _ := io.ReadAll(io.LimitReader(response.Body, 1<<16))
-	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-	writer.WriteHeader(response.StatusCode)
-	_, _ = writer.Write(body)
+
+	// cwe 的 free 是长任务：返回 202 + accepted 只代表已接单，不代表环境已经恢复基线。
+	// 这里把回执解析出来明确告诉调用方，避免把「已接单」当成「已释放」。
+	var receipt struct {
+		Lease           string `json:"lease"`
+		Environment     string `json:"environment"`
+		Status          string `json:"status"`
+		Accepted        bool   `json:"accepted"`
+		AlreadyReleased bool   `json:"already_released"`
+		LogsExpiresAt   string `json:"logs_expires_at"`
+	}
+	_ = json.Unmarshal(body, &receipt)
+	writeJSON(writer, map[string]any{
+		"accepted":        receipt.Accepted,
+		"alreadyReleased": receipt.AlreadyReleased,
+		"environment":     receipt.Environment,
+		"status":          receipt.Status,
+		"logsExpiresAt":   receipt.LogsExpiresAt,
+		// 释放是异步的：前端据此提示"已提交，稍后留意状态"。
+		"note": "已提交释放，环境恢复基线需要一段时间",
+	})
+}
+
+// serveEnvDeploy 申请占用一个环境。cwe 的 deploy 是长任务，返回 202 只代表已接单。
+func (s *server) serveEnvDeploy(writer http.ResponseWriter, request *http.Request) {
+	if s.cwe == nil || !s.cwe.Enabled {
+		http.NotFound(writer, request)
+		return
+	}
+	if request.Method != http.MethodPost {
+		writer.Header().Set("Allow", http.MethodPost)
+		http.Error(writer, "只接受 POST", http.StatusMethodNotAllowed)
+		return
+	}
+	var incoming envDeployRequest
+	if err := json.NewDecoder(io.LimitReader(request.Body, 1<<14)).Decode(&incoming); err != nil {
+		http.Error(writer, "请求体不是合法 JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := incoming.validate(); err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// 幂等键由门户生成并透传：cwe 按它去重，重复提交不会占用两个环境。
+	// 用时间戳+随机串，保证每次点"申请"是独立意图，而重试同一请求时可复用。
+	idempotencyKey := fmt.Sprintf("portal-%d-%s", time.Now().UnixNano(), randomSuffix())
+	payload, _ := json.Marshal(incoming.toCWEPayload())
+	target := strings.TrimRight(s.cwe.URL, "/") + "/api/v1/deploy"
+	proxyRequest, err := http.NewRequestWithContext(request.Context(), http.MethodPost, target, strings.NewReader(string(payload)))
+	if err != nil {
+		http.Error(writer, "构造请求失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	proxyRequest.Header.Set("Content-Type", "application/json")
+	proxyRequest.Header.Set("Idempotency-Key", idempotencyKey)
+
+	response, err := (&http.Client{Timeout: 60 * time.Second}).Do(proxyRequest)
+	if err != nil {
+		http.Error(writer, "调用 cwe 失败: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer func() { _ = response.Body.Close() }()
+	body, _ := io.ReadAll(io.LimitReader(response.Body, 1<<16))
+
+	var receipt struct {
+		Lease       string `json:"lease"`
+		Environment string `json:"environment"`
+		Status      string `json:"status"`
+	}
+	_ = json.Unmarshal(body, &receipt)
+
+	if response.StatusCode >= 400 {
+		// 失败时把 cwe 的原始说明透出去，页面上才能看到是对环境池不满足还是参数问题。
+		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		writer.WriteHeader(response.StatusCode)
+		_, _ = writer.Write(body)
+		return
+	}
+	writeJSON(writer, map[string]any{
+		"accepted":    true,
+		"environment": receipt.Environment,
+		"lease":       receipt.Lease,
+		"status":      receipt.Status,
+		"note":        "已提交申请，部署需要数分钟，完成后环境状态会变为已租用",
+	})
+}
+
+// randomSuffix 生成 Idempotency-Key 的随机部分。
+func randomSuffix() string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	buf := make([]byte, 8)
+	for index := range buf {
+		buf[index] = charset[rand.IntN(len(charset))]
+	}
+	return string(buf)
 }
 
 // serveRobot 返回机器人当前状态与设置，供机器人页渲染。
@@ -405,6 +499,7 @@ func newMux(s *server) *http.ServeMux {
 	mux.HandleFunc("/api/robot/history", s.serveRobotHistory)
 	mux.HandleFunc("/api/env", s.serveEnv)
 	mux.HandleFunc("/api/env/free", s.serveEnvFree)
+	mux.HandleFunc("/api/env/deploy", s.serveEnvDeploy)
 	mux.HandleFunc("/api/robot/run", s.serveRobotRun)
 	mux.Handle("/assets/", http.StripPrefix("/assets/", staticAssets()))
 	mux.HandleFunc("/favicon.svg", func(writer http.ResponseWriter, request *http.Request) {

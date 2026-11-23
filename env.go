@@ -18,6 +18,22 @@ type envStateFile struct {
 	Version      int              `json:"version"`
 	Environments []envRecord      `json:"environments"`
 	Leases       []envLeaseRecord `json:"leases"`
+	Operations   []envOperation   `json:"operations"`
+}
+
+// envOperation 是一次环境操作（部署/释放）的执行记录。
+type envOperation struct {
+	ID          string `json:"id"`
+	Kind        string `json:"kind"`
+	Status      string `json:"status"`
+	Environment string `json:"environment"`
+	Lease       string `json:"lease"`
+	// Step 是阶段编号（数字），不是文字描述。
+	Step        int    `json:"step"`
+	Message     string `json:"message"`
+	CreatedAt   string `json:"created_at"`
+	StartedAt   string `json:"started_at"`
+	FinishedAt  string `json:"finished_at"`
 }
 
 // envRecord 是一个环境的持久化状态。
@@ -96,6 +112,8 @@ type envPool struct {
 	Busy int `json:"busy"`
 	// CheckedAt 是全池最近一次健康检查时间。
 	CheckedAt string `json:"checkedAt"`
+	// RecentOperations 是最近的操作记录，最新的在前。
+	RecentOperations []envOperation `json:"recentOperations"`
 	// Error 非空表示读取 state.json 失败，此时 Environments 为空。
 	Error string `json:"error,omitempty"`
 }
@@ -171,6 +189,14 @@ func parseEnvPool(raw []byte) envPool {
 		}
 		pool.Environments = append(pool.Environments, view)
 	}
+
+	// 操作记录按创建时间倒序取最近若干条。state.json 里的 operations 是追加写入，
+	// 越靠后越新，所以从尾部往前取。
+	const maxOperations = 20
+	pool.RecentOperations = make([]envOperation, 0, maxOperations)
+	for index := len(state.Operations) - 1; index >= 0 && len(pool.RecentOperations) < maxOperations; index-- {
+		pool.RecentOperations = append(pool.RecentOperations, state.Operations[index])
+	}
 	return pool
 }
 
@@ -196,4 +222,46 @@ func (r envFreeRequest) validate() error {
 		return fmt.Errorf("缺少 lease，无法释放环境")
 	}
 	return nil
+}
+
+// envDeployRequest 是从门户发起环境占用的请求体。
+// 只暴露最必要的筛选项：数据库、版本、精确指定环境、租约时长。
+// services/branch 属于热更，和"申请一个环境"是两件事，不放在这里。
+type envDeployRequest struct {
+	Database    string `json:"database"`
+	Version     string `json:"version"`
+	Environment string `json:"env"`
+	TTL         string `json:"ttl"`
+	Owner       string `json:"owner"`
+}
+
+// validate 校验占用请求。environment 与 database 至少给一个，
+// 否则等于让 cwe 从全池里随机挑，调用方无法预期拿到什么。
+func (r *envDeployRequest) validate() error {
+	if r.Environment == "" && r.Database == "" {
+		return fmt.Errorf("至少指定环境名或数据库类型")
+	}
+	return nil
+}
+
+// toCWEPayload 转成 cwe 的 Deploy 请求体。空字段一律省略，
+// 避免把「不筛选」表达成空字符串导致语义变化。
+func (r envDeployRequest) toCWEPayload() map[string]any {
+	payload := map[string]any{}
+	if r.Database != "" {
+		payload["database"] = r.Database
+	}
+	if r.Version != "" {
+		payload["version"] = r.Version
+	}
+	if r.Environment != "" {
+		payload["env"] = r.Environment
+	}
+	if r.TTL != "" {
+		payload["ttl"] = r.TTL
+	}
+	if r.Owner != "" {
+		payload["owner"] = r.Owner
+	}
+	return payload
 }
