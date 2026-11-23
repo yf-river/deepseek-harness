@@ -229,6 +229,12 @@ async function loadHealth() {
 
 
 // ─────────────── ChainWeaver Env 环境管理 ───────────────
+// 分页状态：两个列表各自独立，每页固定 100 条。
+// 必须在 loadEnv 首次调用之前初始化，否则会命中 let 的暂时性死区。
+const PAGE_SIZE = 100
+let envOpsPage = 1
+let historyPage = 1
+
 const envEl = {
   entry: document.getElementById('env-entry'),
   entrySub: document.getElementById('env-entry-sub'),
@@ -697,10 +703,7 @@ const histEl = {
 }
 
 let historyOpen = null
-// 分页状态：两个列表各自独立，每页固定 100 条。
-const PAGE_SIZE = 100
-let envOpsPage = 1
-let historyPage = 1
+
 
 const VERDICT_CLASS = { PASS: 'is-pass', FAILED: 'is-fail', PARTIAL: 'is-partial' }
 
