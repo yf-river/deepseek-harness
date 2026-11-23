@@ -78,11 +78,25 @@ type RobotConfig struct {
 	Enabled bool `yaml:"enabled" json:"enabled"`
 }
 
+// CWEConfig 是 ChainWeaver Env 的数据源设置。
+type CWEConfig struct {
+	// URL 是 cwe 的 HTTP API 根地址，用于提交 free 这类操作。
+	URL string `yaml:"url" json:"url"`
+	// StatePath 是 cwe 的 state.json 路径（在 cwe 所在机器上）。
+	// cwe 没有列出环境的 HTTP 接口，只能读它自己持久化的这份状态。
+	StatePath string `yaml:"state_path" json:"statePath"`
+	// SSHHost 是 cwe 所在机器的 ssh 别名，用于读取 state_path。
+	SSHHost string `yaml:"ssh_host" json:"sshHost"`
+	// Enabled 为 false 时不挂载环境相关路由。
+	Enabled bool `yaml:"enabled" json:"enabled"`
+}
+
 // Config 是 sites.yaml 的完整结构。
 type Config struct {
 	Portal Portal       `yaml:"portal" json:"portal"`
 	Sites  []Site       `yaml:"sites" json:"sites"`
 	Robot  *RobotConfig `yaml:"robot" json:"robot"`
+	CWE    *CWEConfig   `yaml:"cwe" json:"cwe"`
 }
 
 // loadConfig 读取并校验清单。key 必须唯一且非空、url 必须存在，否则启动即失败：
@@ -127,6 +141,8 @@ type server struct {
 	client *http.Client
 	// robot 可能为 nil：配置里没有 robot 段时机器人相关路由直接 404。
 	robot *robotRunner
+	// cwe 可能为 nil：没配 ChainWeaver Env 时不挂载环境路由。
+	cwe *CWEConfig
 }
 
 // siteHealth 是 /api/sites 返回的单个站点状态。
@@ -235,6 +251,56 @@ func staticAssets() http.Handler {
 	})
 }
 
+// serveEnv 返回环境池概况与逐环境状态，数据来自 cwe 的 state.json。
+func (s *server) serveEnv(writer http.ResponseWriter, request *http.Request) {
+	if s.cwe == nil || !s.cwe.Enabled {
+		http.NotFound(writer, request)
+		return
+	}
+	writeJSON(writer, loadEnvPool(s.cwe.SSHHost, s.cwe.StatePath))
+}
+
+// serveEnvFree 提交一次环境释放。cwe 按 lease 恢复基线，所以必须带 lease。
+func (s *server) serveEnvFree(writer http.ResponseWriter, request *http.Request) {
+	if s.cwe == nil || !s.cwe.Enabled {
+		http.NotFound(writer, request)
+		return
+	}
+	if request.Method != http.MethodPost {
+		writer.Header().Set("Allow", http.MethodPost)
+		http.Error(writer, "只接受 POST", http.StatusMethodNotAllowed)
+		return
+	}
+	var incoming envFreeRequest
+	if err := json.NewDecoder(io.LimitReader(request.Body, 1<<14)).Decode(&incoming); err != nil {
+		http.Error(writer, "请求体不是合法 JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := incoming.validate(); err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// 转发到 cwe。释放是有副作用的动作，不自动重试，失败就如实返回。
+	target := strings.TrimRight(s.cwe.URL, "/") + "/api/v1/free"
+	payload, _ := json.Marshal(map[string]string{"lease": incoming.Lease})
+	proxyRequest, err := http.NewRequestWithContext(request.Context(), http.MethodPost, target, strings.NewReader(string(payload)))
+	if err != nil {
+		http.Error(writer, "构造请求失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	proxyRequest.Header.Set("Content-Type", "application/json")
+	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(proxyRequest)
+	if err != nil {
+		http.Error(writer, "调用 cwe 失败: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer func() { _ = response.Body.Close() }()
+	body, _ := io.ReadAll(io.LimitReader(response.Body, 1<<16))
+	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+	writer.WriteHeader(response.StatusCode)
+	_, _ = writer.Write(body)
+}
+
 // serveRobot 返回机器人当前状态与设置，供机器人页渲染。
 func (s *server) serveRobot(writer http.ResponseWriter, request *http.Request) {
 	if s.robot == nil {
@@ -337,6 +403,8 @@ func newMux(s *server) *http.ServeMux {
 	mux.HandleFunc("/api/robot", s.serveRobot)
 	mux.HandleFunc("/api/robot/settings", s.serveRobotSettings)
 	mux.HandleFunc("/api/robot/history", s.serveRobotHistory)
+	mux.HandleFunc("/api/env", s.serveEnv)
+	mux.HandleFunc("/api/env/free", s.serveEnvFree)
 	mux.HandleFunc("/api/robot/run", s.serveRobotRun)
 	mux.Handle("/assets/", http.StripPrefix("/assets/", staticAssets()))
 	mux.HandleFunc("/favicon.svg", func(writer http.ResponseWriter, request *http.Request) {
@@ -383,6 +451,7 @@ func main() {
 		config: cfg,
 		client: &http.Client{Timeout: 2500 * time.Millisecond},
 		robot:  bot,
+		cwe:    cfg.CWE,
 	}
 	address := cfg.Portal.Listen
 	log.Printf("ChainWeaver 门户监听 %s，接入 %d 个站点", address, len(cfg.Sites))

@@ -48,6 +48,38 @@
 
     <p class="loading" id="loading">正在加载站点清单…</p>
 
+    <!-- 环境管理区块：位于全部站点与机器人之间 -->
+    <h2 class="page-title section-title">环境管理</h2>
+
+    <div class="site-grid">
+      <button class="site-card" id="env-entry" type="button" aria-controls="view-env"
+              title="查看与管理 ChainWeaver Env 环境">
+        <span class="site-card-head">
+          <span class="site-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2.5" y="3.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/>
+              <rect x="2.5" y="11.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="5.6" cy="6" r="1" fill="currentColor"/>
+              <circle cx="5.6" cy="14" r="1" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="site-card-heading">
+            <h3>ChainWeaver Env</h3>
+            <p id="env-entry-sub">环境编排与租约</p>
+          </span>
+          <span class="status status-unknown" id="env-entry-status">检测中</span>
+        </span>
+        <span class="site-card-desc" id="env-entry-desc">查看环境池占用、健康状态与租约，按需释放环境。</span>
+        <span class="site-card-tags">
+          <span class="tag">环境池</span><span class="tag">健康检查</span><span class="tag">租约释放</span>
+        </span>
+        <span class="site-card-foot">
+          <span class="site-url" id="env-entry-meta">192.168.40.247:18080</span>
+          <span class="site-go">查看 →</span>
+        </span>
+      </button>
+    </div>
+
     <!-- 机器人区块：与「全部站点」平级，卡片点进去看设置与运行记录 -->
     <h2 class="page-title section-title">机器人</h2>
 
@@ -81,6 +113,34 @@
         </span>
       </button>
     </div>
+  </main>
+
+
+  <!-- 环境详情：环境池占用、健康状态与租约释放 -->
+  <main class="app-main" id="view-env" hidden>
+    <button class="back-link" id="env-back" type="button">
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      返回全部站点
+    </button>
+    <h2 class="page-title">ChainWeaver Env</h2>
+
+    <section class="env-summary" aria-label="环境池概况">
+      <div class="env-stat"><span class="env-stat-num" id="env-total">-</span><span class="env-stat-label">环境</span></div>
+      <div class="env-stat"><span class="env-stat-num" id="env-idle">-</span><span class="env-stat-label">空闲</span></div>
+      <div class="env-stat"><span class="env-stat-num" id="env-leased">-</span><span class="env-stat-label">已租用</span></div>
+      <div class="env-stat"><span class="env-stat-num" id="env-busy">-</span><span class="env-stat-label">处理中</span></div>
+      <div class="env-stat"><span class="env-stat-num" id="env-unhealthy">-</span><span class="env-stat-label">异常</span></div>
+      <div class="env-summary-actions">
+        <button class="button quiet" id="env-refresh" type="button">刷新</button>
+      </div>
+    </section>
+
+    <section class="env-list" id="env-list" aria-label="环境列表"></section>
+    <p class="history-empty" id="env-empty" hidden>没有环境记录。</p>
+    <p class="env-error" id="env-error" hidden></p>
   </main>
 
   <!-- 机器人详情：设置与运行记录 -->

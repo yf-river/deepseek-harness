@@ -46,3 +46,12 @@ robot:
   send_mail: false
   artifact_dir: /opt/chainweaver-studio/run/robot
   enabled: false
+
+# ChainWeaver Env 环境管理。cwe 没有"列出环境"的 HTTP 接口，
+# 所以环境池读它的 state.json，释放环境走它的 HTTP API。
+cwe:
+  enabled: true
+  url: http://192.168.40.247:18080
+  # 与 cwe serve 使用同一份状态文件；cwe 在 40.247 上，通过 ssh 读
+  ssh_host: 192.168.40.247
+  state_path: /opt/chainweaver-env/state.json

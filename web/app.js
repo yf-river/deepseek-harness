@@ -41,7 +41,7 @@ let sites = []
 // 站内视图：首页与机器人详情。机器人不在顶部签里，从首页卡片进入。
 const HOME_TAB = { key: '__home__', label: '首页', icon: 'home' }
 const ROBOT_VIEW = 'view-robot'
-const VIEWS = { [HOME_TAB.key]: 'view-home', robot: ROBOT_VIEW }
+const VIEWS = { [HOME_TAB.key]: 'view-home', env: 'view-env', robot: ROBOT_VIEW }
 
 function iconFor(name) {
   return ICONS[name] || ICONS.default
@@ -82,7 +82,7 @@ function selectTab(key) {
   })
 
   // 把当前视图写进 hash：刷新停在同一页，前进/后退也能回到对应视图。
-  const hash = key === HOME_TAB.key ? '' : '#/' + (key === 'robot' ? 'robot' : key)
+  const hash = key === HOME_TAB.key ? '' : '#/' + key
   const target = hash || location.pathname
   if (location.hash !== hash && location.pathname + location.hash !== target) {
     history.pushState(null, '', target)
@@ -94,6 +94,7 @@ function selectTab(key) {
 // 视图状态放在 hash 里：刷新、收藏、前进后退都停在同一个页面。
 function currentRoute() {
   const raw = location.hash.replace(/^#\/?/, '')
+  if (raw === 'env') return { view: 'env', env: true }
   if (raw === 'robot') return { view: 'robot', robot: true }
   return { view: HOME_TAB.key, robot: false }
 }
@@ -114,6 +115,7 @@ function applyRoute() {
     loadRobot()
     loadHistory()
   }
+  if (route.env) loadEnv()
 }
 
 window.addEventListener('hashchange', applyRoute)
@@ -225,6 +227,152 @@ async function loadHealth() {
   }
 }
 
+
+// ─────────────── ChainWeaver Env 环境管理 ───────────────
+const envEl = {
+  entry: document.getElementById('env-entry'),
+  entrySub: document.getElementById('env-entry-sub'),
+  entryStatus: document.getElementById('env-entry-status'),
+  entryMeta: document.getElementById('env-entry-meta'),
+  total: document.getElementById('env-total'),
+  idle: document.getElementById('env-idle'),
+  leased: document.getElementById('env-leased'),
+  unhealthy: document.getElementById('env-unhealthy'),
+  busy: document.getElementById('env-busy'),
+  list: document.getElementById('env-list'),
+  empty: document.getElementById('env-empty'),
+  error: document.getElementById('env-error'),
+  refresh: document.getElementById('env-refresh'),
+  back: document.getElementById('env-back'),
+}
+
+// renderEnvPool 渲染环境池统计与逐环境卡片。
+function renderEnvPool(pool) {
+  if (pool.error) {
+    envEl.error.hidden = false
+    envEl.error.textContent = pool.error
+    envEl.list.replaceChildren()
+    envEl.empty.hidden = true
+    return
+  }
+  envEl.error.hidden = true
+  envEl.total.textContent = String(pool.total || 0)
+  envEl.idle.textContent = String(pool.idle || 0)
+  envEl.leased.textContent = String(pool.leased || 0)
+  envEl.busy.textContent = String(pool.busy || 0)
+  envEl.unhealthy.textContent = String(pool.unhealthy || 0)
+
+  const items = pool.environments || []
+  envEl.empty.hidden = items.length > 0
+  envEl.list.replaceChildren()
+
+  items.forEach((env) => {
+    const row = el('div', 'env-row')
+
+    const head = el('div', 'env-row-head')
+    head.appendChild(el('span', 'env-name', env.name))
+    // 已租用优先于健康状态：占用中的环境即便健康也不该被当成可分配。
+    let tone = 'status status-up'
+    let text = '就绪'
+    if (env.status === 'restoring') {
+      tone = 'status status-unknown'
+      text = '释放中'
+    } else if (env.lease) {
+      tone = 'status status-down'
+      text = '已租用'
+    } else if (!env.ready) {
+      tone = 'status status-down'
+      text = '异常'
+    }
+    head.appendChild(el('span', tone, text))
+    row.appendChild(head)
+
+    const meta = el('div', 'env-row-meta')
+    const bits = []
+    if (env.version) bits.push(env.version)
+    if (env.database) bits.push(env.database)
+    if (env.branch) bits.push('基线 ' + env.branch)
+    if (env.modules && env.modules.length) bits.push(env.modules.length + ' 模块')
+    bits.forEach((one) => meta.appendChild(el('span', 'env-bit', one)))
+    row.appendChild(meta)
+
+    if (env.lease) {
+      const lease = el('div', 'env-lease')
+      lease.appendChild(el('span', '', '租约 ' + shortID(env.lease.id)))
+      if (env.lease.owner) lease.appendChild(el('span', '', '占用 ' + env.lease.owner))
+      if (env.lease.expiresAt) lease.appendChild(el('span', '', '到期 ' + beijingTime(env.lease.expiresAt)))
+      const freeBtn = el('button', 'env-free', '释放')
+      freeBtn.type = 'button'
+      freeBtn.addEventListener('click', () => freeEnv(env, freeBtn))
+      lease.appendChild(freeBtn)
+      row.appendChild(lease)
+    }
+
+    envEl.list.appendChild(row)
+  })
+
+  // 首页卡片同步显示概况，不必进详情就能看出池子占用。
+  if (envEl.entryStatus) {
+    envEl.entryStatus.className = 'status ' + (pool.leased > 0 ? 'status-down' : 'status-up')
+    envEl.entryStatus.textContent = `${pool.leased || 0}/${pool.total || 0} 占用`
+  }
+  if (envEl.entrySub) {
+    envEl.entrySub.textContent = pool.unhealthy > 0
+      ? `${pool.unhealthy} 个环境异常`
+      : `${pool.idle || 0} 个空闲 · ${pool.leased || 0} 个已租用`
+  }
+}
+
+function shortID(value) {
+  return value && value.length > 8 ? value.slice(0, 8) : value || ''
+}
+
+async function loadEnv() {
+  if (!envEl.list) return
+  try {
+    const response = await fetch('/api/env', { cache: 'no-store' })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    renderEnvPool(await response.json())
+  } catch (error) {
+    envEl.error.hidden = false
+    envEl.error.textContent = `读取环境池失败：${error.message || error}`
+  }
+}
+
+// freeEnv 会让 cwe 按租约恢复基线，属于有副作用的操作，所以先确认再发。
+async function freeEnv(env, button) {
+  if (!env.lease) return
+  const confirmed = window.confirm(`释放环境 ${env.name}？\ncwe 会按租约恢复基线，环境回到可再分配状态。`)
+  if (!confirmed) return
+  button.disabled = true
+  try {
+    const response = await fetch('/api/env/free', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lease: env.lease.id }),
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(text || `HTTP ${response.status}`)
+    }
+    toast(`已提交释放 ${env.name}`)
+    await loadEnv()
+  } catch (error) {
+    toast(`释放失败：${error.message || error}`, true)
+    button.disabled = false
+  }
+}
+
+if (envEl.entry) {
+  envEl.entry.addEventListener('click', () => selectTab('env'))
+  envEl.refresh.addEventListener('click', loadEnv)
+  envEl.back.addEventListener('click', () => {
+    history.pushState(null, '', location.pathname)
+    applyRoute()
+  })
+  // 首页卡片要显示池子占用，启动时就拉一次。
+  loadEnv()
+}
 
 // ─────────────────────────── 机器人页 ───────────────────────────
 
