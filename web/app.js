@@ -38,11 +38,10 @@ const siteGrid = document.getElementById('site-grid')
 const loading = document.getElementById('loading')
 
 let sites = []
-// 站内视图：首页与机器人。站点签是整页跳走，所以回到门户时必然又落在站内视图上，
-// 不需要额外的状态记忆。
+// 站内视图：首页与机器人详情。机器人不在顶部签里，从首页卡片进入。
 const HOME_TAB = { key: '__home__', label: '首页', icon: 'home' }
-const ROBOT_TAB = { key: '__robot__', label: '机器人', icon: 'robot' }
-const VIEWS = { [HOME_TAB.key]: 'view-home', [ROBOT_TAB.key]: 'view-robot' }
+const ROBOT_VIEW = 'view-robot'
+const VIEWS = { [HOME_TAB.key]: 'view-home', robot: ROBOT_VIEW }
 
 function iconFor(name) {
   return ICONS[name] || ICONS.default
@@ -79,7 +78,6 @@ function selectTab(key) {
     const node = document.getElementById(id)
     if (node) node.hidden = viewKey !== key
   })
-  if (key === ROBOT_TAB.key) loadRobot()
 }
 
 function renderTabs() {
@@ -95,16 +93,6 @@ function renderTabs() {
   // 已经在首页时点首页签不跳转，只把选中态落回首页。
   home.addEventListener('click', () => selectTab(HOME_TAB.key))
   navTabs.appendChild(home)
-
-  const robotTab = el('button', 'nav-tab')
-  robotTab.type = 'button'
-  robotTab.setAttribute('role', 'tab')
-  robotTab.dataset.key = ROBOT_TAB.key
-  robotTab.title = '每日巡检机器人'
-  robotTab.appendChild(navIconSpan(ROBOT_TAB))
-  robotTab.appendChild(el('span', 'nav-tab-label', ROBOT_TAB.label))
-  robotTab.addEventListener('click', () => selectTab(ROBOT_TAB.key))
-  navTabs.appendChild(robotTab)
 
   sites.forEach((site) => {
     const tab = el('button', 'nav-tab')
@@ -211,6 +199,10 @@ const robotEl = {
   result: document.getElementById('robot-result'),
   save: document.getElementById('robot-save'),
   run: document.getElementById('robot-run'),
+  entry: document.getElementById('robot-entry'),
+  entryDesc: document.getElementById('robot-entry-desc'),
+  entryStatus: document.getElementById('robot-entry-status'),
+  back: document.getElementById('robot-back'),
 }
 
 let robotAvailable = false
@@ -306,6 +298,22 @@ function renderRobotState(payload) {
     robotEl.result.hidden = true
   }
 
+  // 首页卡片同步显示同一份状态，用户不进详情也能看到上次结果。
+  if (robotEl.entryStatus) {
+    robotEl.entryStatus.textContent = running ? '执行中' : state.verdict || '未执行'
+    robotEl.entryStatus.className = 'robot-entry-status' + (running ? ' is-running' : state.verdict === 'PASS' ? ' is-pass' : state.verdict ? ' is-fail' : '')
+  }
+  if (robotEl.entryDesc) {
+    if (running) {
+      robotEl.entryDesc.textContent = state.message || '正在执行…'
+    } else if (state.verdict) {
+      const tail = state.endedAt ? ` · ${beijingTime(state.endedAt)}` : ''
+      robotEl.entryDesc.textContent = `上次结果：${state.verdict}${tail}`
+    } else {
+      robotEl.entryDesc.textContent = '每天把选中的主流程依次跑一遍，结果发到指定邮箱。'
+    }
+  }
+
   // 执行中持续轮询，结束后自动停。
   if (running && !robotPollTimer) {
     robotPollTimer = setInterval(loadRobot, 5000)
@@ -391,6 +399,8 @@ async function runRobot() {
 if (robotEl.save) {
   robotEl.save.addEventListener('click', saveRobot)
   robotEl.run.addEventListener('click', runRobot)
+  robotEl.entry.addEventListener('click', () => selectTab('robot'))
+  robotEl.back.addEventListener('click', () => selectTab(HOME_TAB.key))
 }
 
 async function boot() {
@@ -410,6 +420,8 @@ async function boot() {
     renderCards({})
     loading.hidden = true
     loadHealth()
+    // 首页的机器人卡片要显示状态，因此启动时就拉一次，不等用户点进详情。
+    loadRobot()
   } catch (error) {
     loading.hidden = false
     loading.className = 'loading error'
@@ -417,23 +429,19 @@ async function boot() {
   }
 }
 
-// 数字键快速跳转：1 是首页，2 是机器人，3 起对应站点签；输入框内不拦截。
+// 数字键快速跳转：1 是首页，2 起对应站点签；输入框内不拦截。
 document.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return
   const target = event.target
   if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return
   const index = Number(event.key)
-  if (!Number.isInteger(index) || index < 1 || index > sites.length + 2) return
+  if (!Number.isInteger(index) || index < 1 || index > sites.length + 1) return
   event.preventDefault()
   if (index === 1) {
     selectTab(HOME_TAB.key)
     return
   }
-  if (index === 2) {
-    selectTab(ROBOT_TAB.key)
-    return
-  }
-  go(sites[index - 3])
+  go(sites[index - 2])
 })
 
 boot()

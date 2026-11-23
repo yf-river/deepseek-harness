@@ -47,10 +47,33 @@
     <section class="site-grid" id="site-grid" aria-label="站点列表"></section>
 
     <p class="loading" id="loading">正在加载站点清单…</p>
+
+    <!-- 机器人区块：与「全部站点」平级，卡片点进去看设置与运行记录 -->
+    <h2 class="page-title section-title">机器人</h2>
+
+    <button class="robot-entry" id="robot-entry" type="button" aria-controls="view-robot">
+      <span class="robot-entry-icon" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3.5" y="6.5" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="10" cy="2.6" r="1.1" fill="currentColor"/>
+          <circle cx="7.6" cy="10.8" r="1.15" fill="currentColor"/>
+          <circle cx="12.4" cy="10.8" r="1.15" fill="currentColor"/>
+          <path d="M8 13.6h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="robot-entry-body">
+        <span class="robot-entry-title">E2E 集成测试 · 每日巡检</span>
+        <span class="robot-entry-desc" id="robot-entry-desc">每天把选中的主流程依次跑一遍，结果发到指定邮箱。</span>
+      </span>
+      <span class="robot-entry-status" id="robot-entry-status">未执行</span>
+      <span class="robot-entry-go">查看 →</span>
+    </button>
   </main>
 
-  <!-- 机器人视图：一张卡片装下设置与执行结果 -->
+  <!-- 机器人详情：设置与运行记录 -->
   <main class="app-main" id="view-robot" hidden>
+    <button class="back-link" id="robot-back" type="button">← 返回全部站点</button>
     <h2 class="page-title">每日巡检机器人</h2>
 
     <section class="robot-card" aria-labelledby="robot-card-title">
