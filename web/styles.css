@@ -1105,3 +1105,10 @@ a.site-card {
 /* 失败原因与处理建议：颜色区分「发生了什么」和「可以怎么做」 */
 .env-op-msg.is-error { color: var(--red); }
 .env-op-msg.is-hint { color: var(--muted-2); }
+
+/* 上次更新时间：次要信息，与刷新按钮同排右对齐 */
+.env-updated {
+  color: var(--muted-2);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}

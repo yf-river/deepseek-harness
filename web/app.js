@@ -234,12 +234,18 @@ async function loadHealth() {
 const PAGE_SIZE = 100
 let envOpsPage = 1
 let historyPage = 1
+// 环境池轮询：cwe 读一次要 1.4s（走 ssh 解析 514KB state.json），
+// 环境池变化也不快，所以 60 秒一次；页面不可见时暂停，避免后台空转。
+const ENV_POLL_MS = 60000
+let envPollTimer = null
+let envLastUpdated = null
 
 const envEl = {
   entry: document.getElementById('env-entry'),
   entrySub: document.getElementById('env-entry-sub'),
   entryStatus: document.getElementById('env-entry-status'),
   entryMeta: document.getElementById('env-entry-meta'),
+  updated: document.getElementById('env-updated'),
   total: document.getElementById('env-total'),
   idle: document.getElementById('env-idle'),
   leased: document.getElementById('env-leased'),
@@ -422,6 +428,53 @@ function opPill(status) {
   return dotPill(tone, OP_STATUS_TEXT[status] || status || '-')
 }
 
+
+// renderEnvUpdated 把上次更新时间写到卡片与详情页的刷新按钮旁。
+// 相对时间比绝对时间更有用：一眼能判断数据有多旧。
+function relativeTime(date) {
+  const seconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000))
+  if (seconds < 10) return '刚刚'
+  if (seconds < 60) return `${seconds} 秒前`
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return `${minutes} 分钟前`
+  const hours = Math.round(minutes / 60)
+  return `${hours} 小时前`
+}
+
+function renderEnvUpdated() {
+  if (!envLastUpdated) return
+  const text = relativeTime(envLastUpdated)
+  if (envEl.entryMeta) envEl.entryMeta.textContent = `更新于 ${text}`
+  if (envEl.updated) envEl.updated.textContent = `更新于 ${text}`
+}
+
+// 相对时间会过时，每 30 秒刷新一次文案（纯本地计算，不发请求）。
+function startRelativeClock() {
+  setInterval(renderEnvUpdated, 30000)
+}
+
+// startEnvPoll / stopEnvPoll 控制轮询。页面隐藏时停，回来时立刻补一次再继续，
+// 这样切回标签页看到的是最新数据，而不是最多等满 60 秒。
+function startEnvPoll() {
+  if (envPollTimer) return
+  envPollTimer = setInterval(() => { loadEnv() }, ENV_POLL_MS)
+}
+
+function stopEnvPoll() {
+  if (!envPollTimer) return
+  clearInterval(envPollTimer)
+  envPollTimer = null
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopEnvPoll()
+  } else {
+    loadEnv()
+    startEnvPoll()
+  }
+})
+
 function shortID(value) {
   return value && value.length > 8 ? value.slice(0, 8) : value || ''
 }
@@ -432,6 +485,8 @@ async function loadEnv() {
     const response = await fetch(`/api/env?page=${envOpsPage}&page_size=${PAGE_SIZE}`, { cache: 'no-store' })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     renderEnvPool(await response.json())
+    envLastUpdated = new Date()
+    renderEnvUpdated()
   } catch (error) {
     envEl.error.hidden = false
     envEl.error.textContent = `读取环境池失败：${error.message || error}`
@@ -449,8 +504,10 @@ if (envEl.entry) {
     history.pushState(null, '', location.pathname)
     applyRoute()
   })
-  // 首页卡片要显示池子占用，启动时就拉一次。
+  // 首页卡片要显示池子占用，启动时就拉一次，之后按 60 秒轮询。
   loadEnv()
+  startEnvPoll()
+  startRelativeClock()
 }
 
 // ─────────────────────────── 机器人页 ───────────────────────────
