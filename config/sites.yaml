@@ -7,9 +7,9 @@ portal:
 
 sites:
   - key: test
-    label: E2E集成测试平台
-    title: E2E集成测试平台
-    subtitle: IDA/Mira/DPM 主流程执行与环境释放
+    label: ChainWeaver Test
+    title: ChainWeaver Test
+    subtitle: 跨组件集成测试
     url: http://192.168.40.247:18091/
     health_url: http://192.168.40.247:18091/
     description: 选择主流程与产品基线分支执行集成测试，查看运行编号、阶段耗时与结果明细。
@@ -17,9 +17,9 @@ sites:
     icon: test
 
   - key: flow
-    label: CWF Flow
+    label: ChainWeaver Flow
     title: ChainWeaver Flow
-    subtitle: 需求工作台与跨仓交付编排
+    subtitle: 多组件协同开发
     url: http://192.168.40.247:18092/
     health_url: http://192.168.40.247:18092/
     description: 从 TAPD 导入需求，按工作区编排方案、实现、评审到交付的跨仓流程。

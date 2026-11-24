@@ -116,6 +116,23 @@
   </main>
 
 
+  <!-- 站点内嵌：顶部签栏保留，内容区用 iframe 承载站点 -->
+  <main class="app-main app-main--embed" id="view-site" hidden>
+    <div class="embed-bar">
+      <button class="back-link" id="site-back" type="button">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        返回全部站点
+      </button>
+      <span class="embed-title" id="site-title"></span>
+      <a class="embed-open" id="site-open" href="#" target="_blank" rel="noopener">在新标签打开 →</a>
+    </div>
+    <iframe class="embed-frame" id="site-frame" title="站点内容"
+            referrerpolicy="no-referrer"></iframe>
+  </main>
+
   <!-- 环境详情：环境池占用、健康状态与租约释放 -->
   <main class="app-main" id="view-env" hidden>
     <button class="back-link" id="env-back" type="button">

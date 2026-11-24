@@ -9,6 +9,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -146,11 +147,15 @@ type envPool struct {
 // HTTP 接口，只能读那份状态文件。走 ssh 读，不复制文件、不额外起同步任务，
 // 读到的始终是 cwe 正在写的那一份。
 func loadEnvPool(sshHost, envHost, statePath string, page, pageSize int) envPool {
+	// ssh_host 为空表示 cwe 与本进程同机，直接读本地文件，不走 ssh。
+	var raw []byte
+	var err error
 	if sshHost == "" {
-		return envPool{Error: "未配置 cwe 的 ssh_host"}
+		raw, err = os.ReadFile(statePath)
+	} else {
+		command := exec.Command("ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=6", sshHost, "cat "+statePath)
+		raw, err = command.Output()
 	}
-	command := exec.Command("ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=6", sshHost, "cat "+statePath)
-	raw, err := command.Output()
 	if err != nil {
 		return envPool{Error: "读取 cwe 状态失败: " + err.Error()}
 	}

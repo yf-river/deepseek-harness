@@ -1,0 +1,59 @@
+# ChainWeaver 门户站点清单。这是唯一真源：新增站点只需在这里加一条，重启服务即生效。
+# 每个站点会渲染成顶部一个横向签，以及首页的一张卡片。
+portal:
+  title: ChainWeaver
+  # 门户自己的监听地址；部署时可用 -listen 覆盖。
+  listen: 192.168.40.247:18090
+
+sites:
+  - key: test
+    label: ChainWeaver Test
+    title: ChainWeaver Test
+    subtitle: 跨组件集成测试
+    url: http://192.168.40.247:18091/
+    health_url: http://192.168.40.247:18091/
+    description: 选择主流程与产品基线分支执行集成测试，查看运行编号、阶段耗时与结果明细。
+    tags: [主流程, 基线分支, 运行记录]
+    icon: test
+
+  - key: flow
+    label: ChainWeaver Flow
+    title: ChainWeaver Flow
+    subtitle: 多组件协同开发
+    url: http://192.168.40.247:18092/
+    health_url: http://192.168.40.247:18092/
+    description: 从 TAPD 导入需求，按工作区编排方案、实现、评审到交付的跨仓流程。
+    tags: [需求导入, 工作区, 交付评审]
+    icon: flow
+
+# 每日巡检机器人。它由门户自己调度，不出现在站点清单里。
+robot:
+  # CWT 任务 API 根地址
+  cwt_url: http://192.168.40.247:18091
+  # 每次巡检串行执行的主流程；先只放 ida，跑通后再加 mira / dpm
+  suites:
+    - id: ida
+      name: IDA
+  # 每日触发时间与解释该时间的时区
+  schedule: "08:00"
+  schedule_timezone: Asia/Shanghai
+  # 收件人
+  mail_to:
+    - yunfeihu@tencent.com
+  mail_bin: /usr/local/bin/wecom-cli
+  # 下面两项只是首次启动的初始值；页面上勾选「执行后发邮件」「每天定时执行」并保存后，
+  # 以 run/robot/settings.json 为准，改这里不再影响已保存的设置。
+  send_mail: false
+  artifact_dir: /opt/chainweaver-studio/run/robot
+  enabled: false
+
+# ChainWeaver Env 环境管理。cwe 没有"列出环境"的 HTTP 接口，
+# 所以环境池读它的 state.json，释放环境走它的 HTTP API。
+cwe:
+  enabled: true
+  url: http://192.168.40.247:18080
+  # 门户与 cwe 同机部署，直接读本地状态文件（ssh_host 留空即走本地读取）
+  ssh_host: ""
+  state_path: /opt/chainweaver-env/state.json
+  # 环境部署所在的宿主机，用于拼前端访问链接（state.json 只有 NodePort，没有主机）
+  env_host: 192.168.40.247

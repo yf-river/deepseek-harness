@@ -230,11 +230,18 @@ func writeJSON(writer http.ResponseWriter, payload any) {
 	_ = encoder.Encode(payload)
 }
 
-// setPageHeaders 给页面与静态资源下发安全头。门户只加载自己的脚本样式，不允许被嵌入。
+// setPageHeaders 给页面与静态资源下发安全头。
+//
+// frame-src 需要显式放行被内嵌的站点：default-src 'self' 会把它一起约束住，
+// 导致 iframe 被浏览器拒绝（日志里是 "violates default-src 'self'"）。
+// 这里放行 http/https 全部来源，与站点侧已放开的 frame-ancestors 对应；
+// script/style/connect 仍只允许同源，页面本身的资源加载没有被放开。
+// frame-ancestors 保持 'none'：门户自己仍然不允许被别的页面嵌套。
 func setPageHeaders(writer http.ResponseWriter) {
 	writer.Header().Set("Content-Security-Policy",
 		"default-src 'self'; script-src 'self'; style-src 'self'; "+
-			"img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+			"img-src 'self' data:; connect-src 'self'; "+
+			"frame-src http: https:; base-uri 'none'; frame-ancestors 'none'")
 	writer.Header().Set("X-Frame-Options", "DENY")
 	writer.Header().Set("X-Content-Type-Options", "nosniff")
 	writer.Header().Set("Referrer-Policy", "no-referrer")

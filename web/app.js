@@ -34,6 +34,21 @@ const ICONS = {
 }
 
 const navTabs = document.getElementById('nav-tabs')
+
+// 站点内嵌区的元素引用
+const siteEl = {
+  frame: document.getElementById('site-frame'),
+  title: document.getElementById('site-title'),
+  open: document.getElementById('site-open'),
+  back: document.getElementById('site-back'),
+}
+
+if (siteEl.back) {
+  siteEl.back.addEventListener('click', () => {
+    history.pushState(null, '', location.pathname)
+    applyRoute()
+  })
+}
 const siteGrid = document.getElementById('site-grid')
 const loading = document.getElementById('loading')
 
@@ -41,7 +56,7 @@ let sites = []
 // 站内视图：首页与机器人详情。机器人不在顶部签里，从首页卡片进入。
 const HOME_TAB = { key: '__home__', label: '首页', icon: 'home' }
 const ROBOT_VIEW = 'view-robot'
-const VIEWS = { [HOME_TAB.key]: 'view-home', env: 'view-env', robot: ROBOT_VIEW }
+const VIEWS = { [HOME_TAB.key]: 'view-home', env: 'view-env', robot: ROBOT_VIEW, site: 'view-site' }
 
 function iconFor(name) {
   return ICONS[name] || ICONS.default
@@ -76,10 +91,14 @@ function selectTab(key) {
     node.classList.toggle('active', active)
     node.setAttribute('aria-selected', active ? 'true' : 'false')
   })
-  Object.entries(VIEWS).forEach(([viewKey, id]) => {
+  // 站点 key 形如 site/test，对应 VIEWS 的 site 视图。
+  const viewKey = key.startsWith('site/') ? 'site' : key
+  Object.entries(VIEWS).forEach(([name, id]) => {
     const node = document.getElementById(id)
-    if (node) node.hidden = viewKey !== key
+    if (node) node.hidden = name !== viewKey
   })
+  // 内嵌站点需要在视图切出来之后再设置 iframe，否则 iframe 还处于 hidden。
+  if (viewKey === 'site') showSite(key.slice('site/'.length))
 
   // 把当前视图写进 hash：刷新停在同一页，前进/后退也能回到对应视图。
   const hash = key === HOME_TAB.key ? '' : '#/' + key
@@ -96,7 +115,10 @@ function currentRoute() {
   const raw = location.hash.replace(/^#\/?/, '')
   if (raw === 'env') return { view: 'env', env: true }
   if (raw === 'robot') return { view: 'robot', robot: true }
-  return { view: HOME_TAB.key, robot: false }
+  // 站点内嵌：/#/site/test 表示在看 ChainWeaver Test
+  const siteMatch = /^site\/(.+)$/.exec(raw)
+  if (siteMatch) return { view: 'site', site: siteMatch[1] }
+  return { view: HOME_TAB.key }
 }
 
 // applyRoute 按当前 URL 同步选中态与视图，不写回 hash（避免循环）。
@@ -116,6 +138,7 @@ function applyRoute() {
     loadHistory()
   }
   if (route.env) loadEnv()
+  if (route.site) showSite(route.site)
 }
 
 window.addEventListener('hashchange', applyRoute)
@@ -135,20 +158,35 @@ function renderTabs() {
   navTabs.appendChild(home)
 
   sites.forEach((site) => {
-    // 用 <a> 而不是 button：新标签页打开是链接的原生行为，不受浏览器弹窗拦截影响，
-    // 中键和右键"在新标签打开"也自动可用。
-    const tab = el('a', 'nav-tab')
-    tab.href = site.url
-    tab.target = '_blank'
-    tab.rel = 'noopener'
-    tab.dataset.key = site.key
+    // 站点改成站内内嵌：点击在内容区用 iframe 打开，顶部签栏保留。
+    const tab = el('button', 'nav-tab')
+    tab.type = 'button'
+    tab.dataset.key = 'site/' + site.key
     tab.title = `${site.title} · ${site.url}`
     tab.appendChild(navIconSpan(site))
     tab.appendChild(el('span', 'nav-tab-label', site.label))
+    tab.addEventListener('click', () => selectTab('site/' + site.key))
     navTabs.appendChild(tab)
   })
 
   // 这里只负责生成签，视图由 applyRoute 按 URL 决定，不在渲染时写路由。
+}
+
+
+// showSite 把指定站点加载进 iframe。顶部签栏保留在外面，内容区换成站点。
+// 站点自身的 CSP 已放开 frame-ancestors，所以能正常嵌套。
+function showSite(key) {
+  const site = sites.find((one) => one.key === key)
+  if (!site) return
+  if (siteEl.title) siteEl.title.textContent = site.title || site.label
+  if (siteEl.frame) {
+    // 同一个地址不重复设置，避免重渲染把用户正在操作的页面刷掉。
+    if (siteEl.frame.dataset.url !== site.url) {
+      siteEl.frame.dataset.url = site.url
+      siteEl.frame.src = site.url
+    }
+  }
+  if (siteEl.open) siteEl.open.href = site.url
 }
 
 function statusBadge(health) {
@@ -170,10 +208,8 @@ function statusBadge(health) {
 function renderCards(healthByKey) {
   siteGrid.replaceChildren()
   sites.forEach((site) => {
-    const card = el('a', 'site-card')
-    card.href = site.url
-    card.target = '_blank'
-    card.rel = 'noopener'
+    const card = el('button', 'site-card')
+    card.type = 'button'
     card.dataset.key = site.key
     card.title = `进入 ${site.title}`
 
@@ -203,6 +239,7 @@ function renderCards(healthByKey) {
     foot.appendChild(goLabel)
     card.appendChild(foot)
 
+    card.addEventListener('click', () => selectTab('site/' + site.key))
     siteGrid.appendChild(card)
   })
 }
