@@ -1112,3 +1112,47 @@ a.site-card {
   font-size: var(--fs-xs);
   white-space: nowrap;
 }
+
+/* ── 环境行：命名空间、服务器、前端链接 ── */
+/* 模块徽标用主色区分，与版本/数据库这类普通属性分开 */
+.env-bit.is-key {
+  border-color: #c3d6f5;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.env-row-ns,
+.env-row-addr {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: var(--fs-xs);
+}
+.env-ns-label,
+.env-addr-label {
+  flex-shrink: 0;
+  width: 52px;
+  color: var(--muted-2);
+}
+/* 第二组起补左间距，避免「服务器 1.2.3.4 前端 ...」挤成一片 */
+.env-row-addr .env-addr-label:not(:first-child) { margin-left: 12px; }
+.env-ns {
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--soft);
+  color: var(--muted);
+  font-family: var(--mono, 'SFMono-Regular', Consolas, monospace);
+}
+.env-addr {
+  color: var(--body);
+  font-family: var(--mono, 'SFMono-Regular', Consolas, monospace);
+  overflow-wrap: anywhere;
+}
+.env-link {
+  color: var(--blue);
+  font-family: var(--mono, 'SFMono-Regular', Consolas, monospace);
+  text-decoration: none;
+}
+.env-link:hover { text-decoration: underline; }

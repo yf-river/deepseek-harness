@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os/exec"
 )
 
@@ -94,11 +95,18 @@ type envView struct {
 	Mode        string         `json:"mode"`
 	Status      string         `json:"status"`
 	Modules     []string       `json:"modules"`
+	// ModuleNamespaces 是模块名到命名空间的映射，便于看出模块落在哪个 namespace。
+	ModuleNamespaces map[string]string `json:"moduleNamespaces"`
+	// Namespaces 是该环境占用的全部 Kubernetes 命名空间。
+	Namespaces []string `json:"namespaces"`
 	Database    string         `json:"database"`
 	Branch      string         `json:"branch"`
 	Ready       bool           `json:"ready"`
 	CheckedAt   string         `json:"checkedAt"`
 	Ports       map[string]int `json:"ports"`
+	// UIPort 是前端 NodePort，UIURL 由它和 EnvHost 拼出可直接打开的地址。
+	UIPort int    `json:"uiPort"`
+	UIURL  string `json:"uiUrl"`
 	// Lease 为 nil 表示该环境当前没有被占用。
 	Lease *envLeaseView `json:"lease"`
 	UpdatedAt string    `json:"updatedAt"`
@@ -137,7 +145,7 @@ type envPool struct {
 // 为什么走 ssh：cwe 与门户不在同一台机器上（cwe 在 40.247），它又没有"列出环境"的
 // HTTP 接口，只能读那份状态文件。走 ssh 读，不复制文件、不额外起同步任务，
 // 读到的始终是 cwe 正在写的那一份。
-func loadEnvPool(sshHost, statePath string, page, pageSize int) envPool {
+func loadEnvPool(sshHost, envHost, statePath string, page, pageSize int) envPool {
 	if sshHost == "" {
 		return envPool{Error: "未配置 cwe 的 ssh_host"}
 	}
@@ -146,7 +154,15 @@ func loadEnvPool(sshHost, statePath string, page, pageSize int) envPool {
 	if err != nil {
 		return envPool{Error: "读取 cwe 状态失败: " + err.Error()}
 	}
-	return parseEnvPool(raw, page, pageSize)
+	pool := parseEnvPool(raw, page, pageSize)
+	// 前端链接由端口 + 宿主机地址拼出。cwe 的 state.json 只有 NodePort，
+	// 不知道宿主机是谁，所以这部分在读取层补齐。
+	for index := range pool.Environments {
+		if pool.Environments[index].UIPort > 0 && envHost != "" {
+			pool.Environments[index].UIURL = fmt.Sprintf("http://%s:%d/", envHost, pool.Environments[index].UIPort)
+		}
+	}
+	return pool
 }
 
 // parseEnvPool 把 state.json 的原始字节解析成环境池视图。抽成独立函数便于单测。
@@ -169,12 +185,15 @@ func parseEnvPool(raw []byte, page, pageSize int) envPool {
 			Version:   record.Version,
 			Mode:      record.Mode,
 			Status:    record.Status,
-			Modules:   moduleNames(record.Modules),
+			Modules:          moduleNames(record.Modules),
+			ModuleNamespaces: moduleNamespaces(record.Modules),
+			Namespaces:       record.Namespaces,
 			Database:  record.Database,
 			Branch:    record.Baseline.Branch,
 			Ready:     record.Health.Ready,
 			CheckedAt: record.Health.CheckedAt,
 			Ports:     record.Ports,
+			UIPort:    record.Ports["ui"],
 			UpdatedAt: record.UpdatedAt,
 		}
 		if lease, ok := leases[record.Name]; ok {
@@ -241,6 +260,21 @@ func normalizePage(page, pageSize int) (int, int) {
 		pageSize = defaultPageSize
 	}
 	return page, pageSize
+}
+
+// moduleNamespaces 返回模块名到命名空间的映射。
+// 环境里有多个模块时，能直接看出每个落在哪个 namespace。
+func moduleNamespaces(modules []envModule) map[string]string {
+	if len(modules) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(modules))
+	for _, module := range modules {
+		if module.Name != "" {
+			out[module.Name] = module.Namespace
+		}
+	}
+	return out
 }
 
 // moduleNames 把模块记录压成名称数组。

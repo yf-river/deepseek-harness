@@ -87,6 +87,9 @@ type CWEConfig struct {
 	StatePath string `yaml:"state_path" json:"statePath"`
 	// SSHHost 是 cwe 所在机器的 ssh 别名，用于读取 state_path。
 	SSHHost string `yaml:"ssh_host" json:"sshHost"`
+	// EnvHost 是环境部署所在的宿主机地址，用于拼前端访问链接。
+	// cwe 的 state.json 只记 NodePort，不记主机。
+	EnvHost string `yaml:"env_host" json:"envHost"`
 	// Enabled 为 false 时不挂载环境相关路由。
 	Enabled bool `yaml:"enabled" json:"enabled"`
 }
@@ -268,7 +271,7 @@ func (s *server) serveEnv(writer http.ResponseWriter, request *http.Request) {
 			pageSize = parsed
 		}
 	}
-	writeJSON(writer, loadEnvPool(s.cwe.SSHHost, s.cwe.StatePath, page, pageSize))
+	writeJSON(writer, loadEnvPool(s.cwe.SSHHost, s.cwe.EnvHost, s.cwe.StatePath, page, pageSize))
 }
 
 // serveRobot 返回机器人当前状态与设置，供机器人页渲染。

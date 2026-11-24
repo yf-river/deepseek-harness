@@ -55,3 +55,5 @@ cwe:
   # 与 cwe serve 使用同一份状态文件；cwe 在 40.247 上，通过 ssh 读
   ssh_host: 192.168.40.247
   state_path: /opt/chainweaver-env/state.json
+  # 环境部署所在的宿主机，用于拼前端访问链接（state.json 只有 NodePort，没有主机）
+  env_host: 192.168.40.247

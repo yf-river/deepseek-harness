@@ -302,14 +302,45 @@ function renderEnvPool(pool) {
     head.appendChild(envPill(state, text))
     row.appendChild(head)
 
+    // 第一行元信息：版本、数据库、基线
     const meta = el('div', 'env-row-meta')
-    const bits = []
-    if (env.version) bits.push(env.version)
-    if (env.database) bits.push(env.database)
-    if (env.branch) bits.push('基线 ' + env.branch)
-    if (env.modules && env.modules.length) bits.push(env.modules.length + ' 模块')
-    bits.forEach((one) => meta.appendChild(el('span', 'env-bit', one)))
+    if (env.version) meta.appendChild(el('span', 'env-bit', env.version))
+    if (env.database) meta.appendChild(el('span', 'env-bit', env.database))
+    if (env.branch) meta.appendChild(el('span', 'env-bit', '基线 ' + env.branch))
+    // 模块：显示「模块名 · 命名空间」而不是只给数量，数量本身说明不了任何事
+    Object.entries(env.moduleNamespaces || {}).forEach(([name, ns]) => {
+      meta.appendChild(el('span', 'env-bit is-key', `${name} · ${ns}`))
+    })
     row.appendChild(meta)
+
+    // 第二行：命名空间列表。一个环境通常跨 base/public/ida/front 多个 namespace，
+    // 列全了才能判断某个服务落在哪。
+    if (env.namespaces && env.namespaces.length) {
+      const nsRow = el('div', 'env-row-ns')
+      nsRow.appendChild(el('span', 'env-ns-label', '命名空间'))
+      env.namespaces.forEach((ns) => nsRow.appendChild(el('span', 'env-ns', ns)))
+      row.appendChild(nsRow)
+    }
+
+    // 第三行：服务器地址与前端链接
+    const addr = el('div', 'env-row-addr')
+    addr.appendChild(el('span', 'env-addr-label', '服务器'))
+    addr.appendChild(el('span', 'env-addr', hostOf(env)))
+    if (env.uiUrl) {
+      addr.appendChild(el('span', 'env-addr-label', '前端'))
+      // 链接文字直接给完整地址，不需要再加一个重复的端口
+      const link = el('a', 'env-link', env.uiUrl)
+      link.href = env.uiUrl
+      link.target = '_blank'
+      link.rel = 'noopener'
+      link.title = `打开前端（端口 ${env.uiPort}）`
+      addr.appendChild(link)
+    }
+    if (env.ports && env.ports.database) {
+      addr.appendChild(el('span', 'env-addr-label', '数据库'))
+      addr.appendChild(el('span', 'env-addr', `:${env.ports.database}`))
+    }
+    row.appendChild(addr)
 
     if (env.lease) {
       const lease = el('div', 'env-lease')
@@ -474,6 +505,15 @@ document.addEventListener('visibilitychange', () => {
     startEnvPoll()
   }
 })
+
+// hostOf 取出环境所在宿主机，用于展示"服务器"一栏。
+function hostOf(env) {
+  if (env.uiUrl) {
+    const match = /^https?:\/\/([^:/]+)/.exec(env.uiUrl)
+    if (match) return match[1]
+  }
+  return '-'
+}
 
 function shortID(value) {
   return value && value.length > 8 ? value.slice(0, 8) : value || ''
