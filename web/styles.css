@@ -1133,14 +1133,30 @@ a.site-card {
   margin-top: 8px;
   font-size: var(--fs-xs);
 }
-.env-ns-label,
-.env-addr-label {
+/* 端口与标签之间留出稳定间距 */
+.env-addr-sep { margin-left: 2px; }
+.env-ns-label {
   flex-shrink: 0;
   width: 52px;
   color: var(--muted-2);
 }
-/* 第二组起补左间距，避免「服务器 1.2.3.4 前端 ...」挤成一片 */
-.env-row-addr .env-addr-label:not(:first-child) { margin-left: 12px; }
+/* 数据库端口前用竖线分隔，不再单独占一个标签宽度 */
+.env-addr-sep {
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+  color: var(--muted-2);
+}
+
+/* 宿主机：页面级说明，与统计条同一视觉层但不占卡片 */
+.env-host-line {
+  margin: -8px 0 16px;
+  color: var(--muted-2);
+  font-size: var(--fs-xs);
+}
+.env-host-line span {
+  color: var(--body);
+  font-family: var(--mono, 'SFMono-Regular', Consolas, monospace);
+}
 .env-ns {
   padding: 1px 8px;
   border-radius: 4px;

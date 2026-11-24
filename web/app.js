@@ -246,6 +246,7 @@ const envEl = {
   entryStatus: document.getElementById('env-entry-status'),
   entryMeta: document.getElementById('env-entry-meta'),
   updated: document.getElementById('env-updated'),
+  host: document.getElementById('env-host'),
   total: document.getElementById('env-total'),
   idle: document.getElementById('env-idle'),
   leased: document.getElementById('env-leased'),
@@ -322,13 +323,10 @@ function renderEnvPool(pool) {
       row.appendChild(nsRow)
     }
 
-    // 第三行：服务器地址与前端链接
+    // 第三行：只有可点的前端入口与数据库端口。
+    // 服务器地址四个环境都一样，已提到页面顶部统一说明，不再逐行重复。
     const addr = el('div', 'env-row-addr')
-    addr.appendChild(el('span', 'env-addr-label', '服务器'))
-    addr.appendChild(el('span', 'env-addr', hostOf(env)))
     if (env.uiUrl) {
-      addr.appendChild(el('span', 'env-addr-label', '前端'))
-      // 链接文字直接给完整地址，不需要再加一个重复的端口
       const link = el('a', 'env-link', env.uiUrl)
       link.href = env.uiUrl
       link.target = '_blank'
@@ -337,8 +335,8 @@ function renderEnvPool(pool) {
       addr.appendChild(link)
     }
     if (env.ports && env.ports.database) {
-      addr.appendChild(el('span', 'env-addr-label', '数据库'))
-      addr.appendChild(el('span', 'env-addr', `:${env.ports.database}`))
+      addr.appendChild(el('span', 'env-addr-sep', '数据库'))
+      addr.appendChild(el('span', 'env-addr', String(env.ports.database)))
     }
     row.appendChild(addr)
 
@@ -362,6 +360,11 @@ function renderEnvPool(pool) {
     envEl.entrySub.textContent = pool.unhealthy > 0
       ? `${pool.unhealthy} 个环境异常`
       : `${pool.idle || 0} 个空闲 · ${pool.leased || 0} 个已租用`
+  }
+  // 宿主机只有一个，写在页面顶部；各环境行不再重复。
+  if (envEl.host) {
+    const first = (pool.environments || []).find((one) => one.uiUrl)
+    envEl.host.textContent = first ? hostOf(first) : '-'
   }
   renderOperations(pool)
 }
