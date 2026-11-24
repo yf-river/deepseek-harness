@@ -133,8 +133,9 @@
       <div class="env-stat"><span class="env-stat-num" id="env-leased">-</span><span class="env-stat-label">已租用</span></div>
       <div class="env-stat"><span class="env-stat-num" id="env-busy">-</span><span class="env-stat-label">处理中</span></div>
       <div class="env-stat"><span class="env-stat-num" id="env-unhealthy">-</span><span class="env-stat-label">异常</span></div>
+      <!-- 更新时间跟统计数据同属"读数"，紧跟数字末尾；刷新按钮单独靠右 -->
+      <span class="env-updated" id="env-updated"></span>
       <div class="env-summary-actions">
-        <span class="env-updated" id="env-updated"></span>
         <button class="button quiet" id="env-refresh" type="button">刷新</button>
       </div>
     </section>
