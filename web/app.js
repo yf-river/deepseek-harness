@@ -628,7 +628,7 @@ function renderRobotState(payload) {
   } else if (state.verdict) {
     robotEl.summary.textContent = `上次结果：${state.verdict}${state.endedAt ? ' · ' + beijingTime(state.endedAt) : ''}`
   } else {
-    robotEl.summary.textContent = '每天把选中的主流程依次跑一遍，结果发到指定邮箱。'
+    robotEl.summary.textContent = '每天把所有主流程依次跑一遍，结果发到指定邮箱。'
   }
 
   // 设置只在非执行中回填，避免轮询覆盖用户正在改的内容。
@@ -663,7 +663,7 @@ function renderRobotState(payload) {
   if (robotEl.entryDesc) {
     robotEl.entryDesc.textContent = running
       ? (state.message || '正在执行…')
-      : '每天把选中的主流程依次跑一遍，结果发到指定邮箱。'
+      : '每天把所有主流程依次跑一遍，结果发到指定邮箱。'
   }
   if (robotEl.entryMeta) {
     if (running) {
