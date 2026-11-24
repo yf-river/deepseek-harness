@@ -139,6 +139,8 @@ func (r *robotRunner) StartSchedule() {
 	log.Printf("机器人调度已启动（enabled=%v, schedule=%q, tz=%s）",
 		r.config.Enabled, r.config.Schedule, r.location)
 	go func() {
+		// lastFiredAt 记录本进程内上一次定时触发的时刻，用于防止同一时点重复触发。
+		var lastFiredAt *time.Time
 		for {
 			settings := r.currentSettings()
 			if !settings.Enabled {
@@ -156,7 +158,13 @@ func (r *robotRunner) StartSchedule() {
 				continue
 			}
 
+			// 防重复触发：如果今天这个时点已经跑过（同一个进程内），直接排到明天。
+			// 配置变更或时钟抖动都可能让循环回到这里时仍处于同一分钟。
 			next := nextOccurrence(time.Now().In(r.location), hour, minute)
+			if lastFiredAt != nil && sameDay(lastFiredAt.In(r.location), next) &&
+				lastFiredAt.Hour() == hour && lastFiredAt.Minute() == minute {
+				next = next.AddDate(0, 0, 1)
+			}
 			timer := time.NewTimer(time.Until(next))
 			select {
 			case <-timer.C:
@@ -173,6 +181,8 @@ func (r *robotRunner) StartSchedule() {
 						Message:   "正在提交主流程…",
 					}
 				})
+				fired := time.Now()
+				lastFiredAt = &fired
 				r.execute("schedule")
 				r.runMu.Unlock()
 			case <-r.scheduleChanged:
@@ -198,15 +208,6 @@ func (r *robotRunner) execute(trigger string) {
 	}()
 
 	startedAt := time.Now()
-	batch, err := robot.NewBatch(r.config.ArtifactDir)
-	if err != nil {
-		r.update(func(s *robotState) {
-			s.Status = robotIdle
-			s.LastError = "建立批次目录失败: " + err.Error()
-			s.Message = "执行失败"
-		})
-		return
-	}
 
 	// 开跑前确认没有在途任务，避免和别人的运行抢环境。查不到就当作有在途：
 	// 「查不到」不能当成「没有」。
@@ -226,6 +227,18 @@ func (r *robotRunner) execute(trigger string) {
 			s.Status = robotIdle
 			s.LastError = fmt.Sprintf("当前有 %d 个在途任务", active)
 			s.Message = "未能开始：CWT 上有在途任务"
+		})
+		return
+	}
+
+	// 到这里才建批次目录：前面任何一步提前返回都不该留下空目录，
+	// 否则历史里会出现"跑过但没结果"的条目。
+	batch, err := robot.NewBatch(r.config.ArtifactDir)
+	if err != nil {
+		r.update(func(s *robotState) {
+			s.Status = robotIdle
+			s.LastError = "建立批次目录失败: " + err.Error()
+			s.Message = "执行失败"
 		})
 		return
 	}
@@ -305,6 +318,60 @@ func (r *robotRunner) execute(trigger string) {
 	log.Printf("机器人批次完成：%s，产物 %s", verdict, batch.Dir)
 }
 
+// catchUpMissedRun 在启动时补跑当天漏掉的批次。
+//
+// 为什么需要：进程重启会杀掉正在执行的批次，而定时器只认"下一次触发"，
+// 不会回头补当天已过的时间点。没有这个逻辑，每次在触发时间之后部署都会静默漏一天。
+// 判据只看"今天有没有成功产生过批次"，不判断批次成败——跑失败也算跑过，
+// 不重复打扰。
+func (r *robotRunner) catchUpMissedRun() {
+	settings := r.currentSettings()
+	if !settings.Enabled {
+		return
+	}
+	hour, minute, err := parseSchedule(settings.Schedule)
+	if err != nil {
+		return
+	}
+	now := time.Now().In(r.location)
+	// 还没到今天这个时点，交给正常定时器。
+	scheduled := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, 0, 0, r.location)
+	if now.Before(scheduled) {
+		return
+	}
+	// 今天已有批次（哪怕失败）就不再补。
+	history := r.loadHistory(0)
+	for _, item := range history {
+		stamp := item.EndedAt
+		if stamp == "" {
+			stamp = item.StartedAt
+		}
+		parsed, parseErr := time.Parse(time.RFC3339, stamp)
+		if parseErr != nil {
+			continue
+		}
+		if sameDay(parsed.In(r.location), now) {
+			return
+		}
+	}
+	log.Printf("补跑当天漏掉的定时巡检（%02d:%02d 已过且今天没有批次）", hour, minute)
+	if !r.runMu.TryLock() {
+		return
+	}
+	r.update(func(s *robotState) {
+		*s = robotState{
+			Status:    robotRunning,
+			Trigger:   "catchup",
+			StartedAt: time.Now().In(cstZone()).Format(time.RFC3339),
+			Message:   "补跑当天漏掉的巡检…",
+		}
+	})
+	go func() {
+		defer r.runMu.Unlock()
+		r.execute("catchup")
+	}()
+}
+
 // restoreLastState 从最近一个批次目录恢复上次结果，让服务重启后仍能回答
 // 「昨晚跑得怎么样」。找不到就保持初始状态，不报错。
 func (r *robotRunner) restoreLastState() {
@@ -368,6 +435,13 @@ func nextOccurrence(now time.Time, hour, minute int) time.Time {
 		next = next.AddDate(0, 0, 1)
 	}
 	return next
+}
+
+// sameDay 判断两个时刻是否是同一公历日（按给定时区）。
+func sameDay(a, b time.Time) bool {
+	ay, am, ad := a.Date()
+	by, bm, bd := b.Date()
+	return ay == by && am == bm && ad == bd
 }
 
 func mustJSON(payload any) []byte {

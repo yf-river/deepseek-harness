@@ -427,6 +427,8 @@ func main() {
 			bot.applySettings(stored)
 		}
 		bot.restoreLastState()
+		// 先补跑当天可能漏掉的批次，再启动定时器。
+		bot.catchUpMissedRun()
 		bot.StartSchedule()
 	}
 
