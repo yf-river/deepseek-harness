@@ -478,8 +478,8 @@ function relativeTime(date) {
 function renderEnvUpdated() {
   if (!envLastUpdated) return
   const text = relativeTime(envLastUpdated)
-  if (envEl.entryMeta) envEl.entryMeta.textContent = `更新于 ${text}`
-  if (envEl.updated) envEl.updated.textContent = `更新于 ${text}`
+  if (envEl.entryMeta) envEl.entryMeta.textContent = `更新于${text}`
+  if (envEl.updated) envEl.updated.textContent = `更新于${text}`
 }
 
 // 相对时间会过时，每 30 秒刷新一次文案（纯本地计算，不发请求）。
