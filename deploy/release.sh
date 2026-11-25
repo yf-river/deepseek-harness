@@ -10,7 +10,7 @@ set -euo pipefail
 
 TARGET_HOST="192.168.40.247"
 TARGET_DIR="/opt/chainweaver-studio-remote"
-REMOTE_GIT="git@github.com:yf-river/deepseek-harness.git"
+REMOTE_GIT="https://github.com/yf-river/deepseek-harness.git"
 BRANCH="dev"
 SERVICE="chainweaver-portal"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
