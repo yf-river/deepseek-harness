@@ -55,6 +55,11 @@ if (siteEl.back) {
     applyRoute()
   })
 }
+// 最近一次拉到的数据。卡片可能在数据回来之后才重建，
+// 那时用它回填状态条，不必再打一次请求。
+let lastEnvPool = null
+let lastRobotPayload = null
+
 const siteGrid = document.getElementById('site-grid')
 const loading = document.getElementById('loading')
 
@@ -252,6 +257,11 @@ function renderCards(healthByKey) {
   if (opsHolder) opsHolder.appendChild(buildEnvCard())
   const testHolder = document.getElementById(GROUP_IDS.test)
   if (testHolder) testHolder.appendChild(buildRobotCard())
+
+  // 卡片是刚生成的，之前 loadEnv 的结果没地方写。这里把缓存回填一次，
+  // 否则状态条会一直停在初始的「总计 - · 空闲 -」。
+  if (lastEnvPool) renderEnvPool(lastEnvPool)
+  if (lastRobotPayload) renderRobotEntry(lastRobotPayload)
 
   // 某个分组一个卡片都没有时整块隐藏，不留空标题。
   Object.entries(GROUP_IDS).forEach(([group, id]) => {
@@ -689,7 +699,8 @@ async function loadEnv() {
   try {
     const response = await fetch(`/api/env?page=${envOpsPage}&page_size=${PAGE_SIZE}`, { cache: 'no-store' })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    renderEnvPool(await response.json())
+    lastEnvPool = await response.json()
+    renderEnvPool(lastEnvPool)
     envLastUpdated = new Date()
     renderEnvUpdated()
   } catch (error) {
@@ -811,32 +822,11 @@ function renderRobotState(payload) {
   robotEl.run.disabled = running
   robotEl.run.textContent = running ? '执行中…' : '立即执行一次'
 
-  // 首页卡片同步显示同一份状态，用户不进详情也能看到上次结果。
-  if (robotEl.entryStatus) {
-    // 与站点卡片共用 .status 徽标：绿=正常、红=失败、灰=未执行。
-    const tone = running || state.verdict === 'PASS'
-      ? 'status status-up'
-      : state.verdict ? 'status status-down' : 'status status-unknown'
-    robotEl.entryStatus.className = 'pill ' + (running ? 'is-run' : state.verdict === 'PASS' ? 'is-ok' : state.verdict ? 'is-bad' : 'is-idle')
-    robotEl.entryStatus.textContent = running ? '执行中' : state.verdict || '未执行'
-    robotEl.entryStatus.title = state.endedAt ? `上次 ${beijingTime(state.endedAt)}` : ''
-  }
-  if (robotEl.entrySub) {
-    const suites = (settings.suites || []).map((id) => id.toUpperCase()).join(' · ')
-    const when = settings.enabled ? `每天 ${settings.schedule || '—'}` : '定时未启用'
-    robotEl.entrySub.textContent = suites ? `${suites} · ${when}` : '每天定时执行'
-  }
-  if (robotEl.entryMetric) {
-    if (running) {
-      robotEl.entryMetric.textContent = '正在执行'
-    } else if (payload.nextRunAt) {
-      robotEl.entryMetric.textContent = `下次 ${beijingTime(payload.nextRunAt)}`
-    } else if (state.verdict) {
-      robotEl.entryMetric.textContent = `上次 ${state.verdict}`
-    } else {
-      robotEl.entryMetric.textContent = '尚未执行'
-    }
-  }
+  // 工作台卡片同步显示同一份状态；卡片可能在数据之后才生成，
+  // 由 renderRobotEntry 统一处理，重建时也能回填。
+  lastRobotPayload = payload
+  renderRobotEntry(payload)
+
   // 执行中持续轮询，结束后自动停。
   if (running && !robotPollTimer) {
     robotPollTimer = setInterval(loadRobot, 5000)
@@ -1062,6 +1052,35 @@ async function loadHistory() {
   } catch (error) {
     histEl.empty.hidden = false
     histEl.empty.textContent = `执行记录加载失败：${error.message || error}`
+  }
+}
+
+// renderRobotEntry 把机器人状态写到工作台卡片上。
+// 卡片是动态生成的，重建后调用一次即可回填，不必重新请求。
+function renderRobotEntry(payload) {
+  const state = payload.state || {}
+  const settings = payload.settings || {}
+  const running = state.status === 'running'
+  const status = robotEl.entryStatus
+  if (status) {
+    const verdict = state.verdict
+    const tone = running ? 'is-run' : verdict === 'PASS' ? 'is-ok' : verdict ? 'is-bad' : 'is-idle'
+    status.className = 'pill ' + tone
+    status.textContent = running ? '执行中' : verdict || '未执行'
+    status.title = state.endedAt ? `上次 ${beijingTime(state.endedAt)}` : ''
+  }
+  const sub = robotEl.entrySub
+  if (sub) {
+    const suites = (settings.suites || []).map((id) => id.toUpperCase()).join(' · ')
+    const when = settings.enabled ? `每天 ${settings.schedule || '—'}` : '定时未启用'
+    sub.textContent = suites ? `${suites} · ${when}` : '每天定时执行'
+  }
+  const metric = robotEl.entryMetric
+  if (metric) {
+    if (running) metric.textContent = '正在执行'
+    else if (payload.nextRunAt) metric.textContent = `下次 ${beijingTime(payload.nextRunAt)}`
+    else if (state.verdict) metric.textContent = `上次 ${state.verdict}`
+    else metric.textContent = '尚未执行'
   }
 }
 
