@@ -59,6 +59,11 @@ type Site struct {
 	// 显式置 false 可让站点只出现在一处。指针用于区分"没写"和"写了 false"。
 	ShowInNav  *bool `yaml:"show_in_nav" json:"showInNav"`
 	ShowInGrid *bool `yaml:"show_in_grid" json:"showInGrid"`
+	// Group 决定卡片落在工作台的哪一组：dev / test / ops。留空按 dev。
+	Group string `yaml:"group" json:"group"`
+	// Metric 是卡片底部状态条里的读数值，如「最近 10 次运行」。
+	// 静态值写在配置里；环境和机器人这类动态值由前端覆盖。
+	Metric string `yaml:"metric" json:"metric"`
 }
 
 // RobotConfig 是每日巡检机器人的设置。它由门户自己调度，不是被接入的子站点。

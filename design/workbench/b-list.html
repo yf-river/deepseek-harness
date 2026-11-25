@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="dsh-design" content="web 1440x900">
+<title>方案 B · 列表式高密度</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* 方案 B：站点不再是卡片，而是一行行列表。同样面积能放更多信息，
+   也更容易扫读。环境和自动化用并列的小面板。 */
+.layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.panel-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid #f3f3f3;
+}
+.panel-head h2 { margin: 0; font-size: var(--fs-md); font-weight: 600; color: var(--ink); }
+.panel-head .count { color: var(--muted-2); font-size: var(--fs-xs); }
+
+/* 站点行 */
+.row {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center; gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f6f6f6;
+}
+.row:last-child { border-bottom: none; }
+.row-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--blue-soft); color: var(--blue);
+  display: grid; place-items: center;
+}
+.row-main { min-width: 0; }
+.row-title { display: flex; align-items: center; gap: 8px; }
+.row-title strong { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+.row-meta { margin: 3px 0 0; font-size: var(--fs-xs); color: var(--muted-2); }
+.row-right { display: flex; align-items: center; gap: 14px; }
+.row-url { color: #55606e; font-size: var(--fs-xs); font-family: ui-monospace, monospace; }
+.row-go {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border-radius: 6px;
+  background: #e9f0fc; color: #0043b0;
+  font-size: var(--fs-xs); font-weight: 500; white-space: nowrap;
+}
+
+/* 右栏小面板 */
+.side { display: flex; flex-direction: column; gap: 16px; }
+.mini { padding: 16px 18px; }
+.mini h3 {
+  margin: 0 0 12px; font-size: var(--fs-sm); font-weight: 600; color: var(--ink);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.mini h3 .pill { font-weight: 400; }
+
+/* 环境池分布条 */
+.env-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 10px; }
+.env-bar span { flex: 1; border-radius: 3px; background: var(--green-soft); }
+.env-bar span.used { background: var(--amber-soft); }
+.env-legend { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-xs); }
+.env-legend div { display: flex; align-items: center; justify-content: space-between; color: var(--muted); }
+.env-legend b { color: var(--ink); font-weight: 600; }
+
+/* 巡检小面板 */
+.robot-line { display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-xs); color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="brand"><span class="brand-mark">C</span>ChainWeaver</div>
+  <nav class="nav">
+    <a href="#">研效数据看板</a>
+    <a href="#">质量数据看板</a>
+    <a href="#" class="active">研发工作台</a>
+  </nav>
+</header>
+
+<main class="main">
+  <div class="layout">
+    <!-- 左：站点列表 -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>站点</h2>
+        <span class="count">2 / 4 可访问</span>
+      </div>
+
+      <div class="row">
+        <span class="row-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M8 3.5h6.5a2 2 0 0 1 2 2V9M8 3.5v10a2 2 0 0 0 2 2h6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <div class="row-main">
+          <div class="row-title"><strong>ChainWeaver Test</strong><span class="pill ok">可访问</span></div>
+          <p class="row-meta">跨组件集成测试 · 主流程 / 基线分支 / 运行记录</p>
+        </div>
+        <div class="row-right">
+          <span class="row-url">192.168.40.247:18091</span>
+          <span class="row-go">进入 →</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="row-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="5" cy="10" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="5" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2.4" stroke="currentColor" stroke-width="1.5"/><path d="M7.2 9l5.6-3M7.2 11l5.6 3" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <div class="row-main">
+          <div class="row-title"><strong>ChainWeaver Flow</strong><span class="pill ok">可访问</span></div>
+          <p class="row-meta">多组件协同开发 · 需求导入 / 工作区 / 交付评审</p>
+        </div>
+        <div class="row-right">
+          <span class="row-url">192.168.40.247:18092</span>
+          <span class="row-go">进入 →</span>
+        </div>
+      </div>
+
+      <div class="row" >
+        <span class="row-icon" style="background:var(--soft);color:var(--muted-2)"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="3.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="11.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <div class="row-main">
+          <div class="row-title"><strong>ChainWeaver Env</strong><span class="pill ok">4 空闲</span></div>
+          <p class="row-meta">环境编排与租约 · 4 个环境全部空闲</p>
+        </div>
+        <div class="row-right">
+          <span class="row-url">更新于刚刚</span>
+          <span class="row-go">查看 →</span>
+        </div>
+      </div>
+
+      <div class="row" >
+        <span class="row-icon" style="background:var(--soft);color:var(--muted-2)"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="3.5" y="6.5" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7.6" cy="10.8" r="1.15" fill="currentColor"/><circle cx="12.4" cy="10.8" r="1.15" fill="currentColor"/></svg></span>
+        <div class="row-main">
+          <div class="row-title"><strong>E2E 每日巡检</strong><span class="pill idle">未执行</span></div>
+          <p class="row-meta">每天 08:00 跑 IDA / MIRA / DPM，结果发邮件</p>
+        </div>
+        <div class="row-right">
+          <span class="row-url">尚未执行</span>
+          <span class="row-go">查看 →</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 右：状态速览 -->
+    <aside class="side">
+      <section class="panel mini">
+        <h3>环境池 <span class="pill ok">4 空闲</span></h3>
+        <div class="env-bar"><span></span><span></span><span></span><span></span></div>
+        <div class="env-legend">
+          <div><span>空闲</span><b>4</b></div>
+          <div><span>已租用</span><b>0</b></div>
+          <div><span>异常</span><b>0</b></div>
+        </div>
+      </section>
+
+      <section class="panel mini">
+        <h3>每日巡检 <span class="pill idle">未执行</span></h3>
+        <div style="font-size:var(--fs-xs);color:var(--muted);line-height:1.7">
+          下次执行　<b style="color:var(--ink)">明天 08:00</b><br>
+          收件人　2 人
+        </div>
+        <div class="robot-line"><span>上次结果</span><span>—</span></div>
+      </section>
+    </aside>
+  </div>
+</main>
+</body>
+</html>

@@ -41,78 +41,25 @@
   </header>
 
   <!-- 首页视图：站点清单 -->
+  <!-- 研发工作台：按开发 / 测试 / 运维分组。分组本身承载语义，
+       不再写「某个分组的说明」这类复述性文案。 -->
   <main class="app-main" id="view-home">
-    <h2 class="page-title" id="page-title">全部站点</h2>
+    <section class="wb-group" data-group="dev">
+      <h2 class="wb-group-head">开发</h2>
+      <div class="wb-cards" id="grid-dev"></div>
+    </section>
 
-    <section class="site-grid" id="site-grid" aria-label="站点列表"></section>
+    <section class="wb-group" data-group="test">
+      <h2 class="wb-group-head">测试</h2>
+      <div class="wb-cards" id="grid-test"></div>
+    </section>
+
+    <section class="wb-group" data-group="ops">
+      <h2 class="wb-group-head">运维</h2>
+      <div class="wb-cards" id="grid-ops"></div>
+    </section>
 
     <p class="loading" id="loading">正在加载站点清单…</p>
-
-    <!-- 环境管理区块：与「全部站点」「机器人」平级，各自独立成段 -->
-    <h2 class="page-title section-title">环境管理</h2>
-
-    <div class="site-grid">
-      <button class="site-card" id="env-entry" type="button" aria-controls="view-env"
-              title="查看 ChainWeaver Env 环境">
-        <span class="site-card-head">
-          <span class="site-card-icon" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2.5" y="3.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/>
-              <rect x="2.5" y="11.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/>
-              <circle cx="5.6" cy="6" r="1" fill="currentColor"/>
-              <circle cx="5.6" cy="14" r="1" fill="currentColor"/>
-            </svg>
-          </span>
-          <span class="site-card-heading">
-            <h3>ChainWeaver Env</h3>
-            <p id="env-entry-sub">环境编排与租约</p>
-          </span>
-          <span class="status status-unknown" id="env-entry-status">检测中</span>
-        </span>
-        <span class="site-card-desc" id="env-entry-desc">查看环境池占用、健康状态与租约情况。</span>
-        <span class="site-card-tags">
-          <span class="tag">环境池</span><span class="tag">健康检查</span><span class="tag">租约</span>
-        </span>
-        <span class="site-card-foot">
-          <span class="site-url" id="env-entry-meta">192.168.40.247:18080</span>
-          <span class="site-go">查看 →</span>
-        </span>
-      </button>
-    </div>
-
-    <!-- 机器人区块 -->
-    <h2 class="page-title section-title">机器人</h2>
-
-    <div class="site-grid">
-      <button class="site-card" id="robot-entry" type="button" aria-controls="view-robot"
-              title="查看机器人的设置与运行记录">
-        <span class="site-card-head">
-          <span class="site-card-icon" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3.5" y="6.5" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M10 3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <circle cx="10" cy="2.6" r="1.1" fill="currentColor"/>
-              <circle cx="7.6" cy="10.8" r="1.15" fill="currentColor"/>
-              <circle cx="12.4" cy="10.8" r="1.15" fill="currentColor"/>
-              <path d="M8 13.6h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span class="site-card-heading">
-            <h3>E2E 集成测试 · 每日巡检</h3>
-            <p id="robot-entry-sub">每天定时执行</p>
-          </span>
-          <span class="status status-unknown" id="robot-entry-status">未执行</span>
-        </span>
-        <span class="site-card-desc" id="robot-entry-desc">每天把所有主流程依次跑一遍，结果发到指定邮箱。</span>
-        <span class="site-card-tags">
-          <span class="tag">每天执行</span><span class="tag">结果发邮件</span>
-        </span>
-        <span class="site-card-foot">
-          <span class="site-url" id="robot-entry-meta">尚未执行</span>
-          <span class="site-go">查看 →</span>
-        </span>
-      </button>
-    </div>
   </main>
 
 

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="dsh-design" content="web 1440x900">
+<title>方案 A · 状态总览 + 紧凑卡片</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* 方案 A：保留现有卡片语言，但补一条状态总览，并把卡片压矮横排。
+   改动最小，定稿后能直接映射回 styles.css。 */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.stat {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 16px 18px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.stat-label { color: var(--muted); font-size: var(--fs-xs); }
+.stat-value { display: flex; align-items: baseline; gap: 6px; }
+.stat-num { color: var(--ink); font-size: 22px; font-weight: 600; letter-spacing: -.5px; }
+.stat-unit { color: var(--muted-2); font-size: var(--fs-xs); }
+.stat-note { color: var(--muted-2); font-size: var(--fs-xs); margin-top: 2px; }
+
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+
+.sc { display: flex; flex-direction: column; padding: 16px 18px; gap: 10px; }
+.sc-head { display: flex; align-items: flex-start; gap: 10px; }
+.sc-icon {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 8px;
+  background: var(--blue-soft); color: var(--blue);
+  display: grid; place-items: center;
+}
+.sc-title { flex: 1; min-width: 0; }
+.sc-title h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; color: var(--ink); }
+.sc-title p { margin: 3px 0 0; font-size: var(--fs-xs); color: var(--muted); }
+.sc-desc { margin: 0; font-size: var(--fs-sm); color: var(--body); line-height: 1.65; }
+.sc-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: auto; padding-top: 10px; border-top: 1px solid #f3f3f3;
+  color: var(--muted-2); font-size: var(--fs-xs);
+}
+.sc-go { color: var(--blue); }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="brand"><span class="brand-mark">C</span>ChainWeaver</div>
+  <nav class="nav">
+    <a href="#">研效数据看板</a>
+    <a href="#">质量数据看板</a>
+    <a href="#" class="active">研发工作台</a>
+  </nav>
+</header>
+
+<main class="main">
+  <!-- 新增：一进来先看到整体状态，不必逐张卡片找 -->
+  <div class="summary">
+    <div class="stat">
+      <span class="stat-label">环境池</span>
+      <span class="stat-value"><span class="stat-num">4</span><span class="stat-unit">/ 4 空闲</span></span>
+      <span class="stat-note">0 个已租用</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">每日巡检</span>
+      <span class="stat-value"><span class="stat-num">08:00</span></span>
+      <span class="stat-note">尚未执行过</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">可用站点</span>
+      <span class="stat-value"><span class="stat-num">2</span><span class="stat-unit">/ 4</span></span>
+      <span class="stat-note">2 个从浏览器直连</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">数据更新</span>
+      <span class="stat-value"><span class="stat-num">刚刚</span></span>
+      <span class="stat-note">环境池每 60 秒刷新</span>
+    </div>
+  </div>
+
+  <h2 class="section-title">站点</h2>
+  <div class="grid-3">
+    <article class="card sc">
+      <div class="sc-head">
+        <span class="sc-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M8 3.5h6.5a2 2 0 0 1 2 2V9M8 3.5v10a2 2 0 0 0 2 2h6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <div class="sc-title"><h3>ChainWeaver Test</h3><p>跨组件集成测试</p></div>
+        <span class="pill ok">可访问</span>
+      </div>
+      <p class="sc-desc">选择主流程与基线分支执行集成测试，查看运行编号、阶段耗时与结果明细。</p>
+      <div class="sc-foot"><span>192.168.40.247:18091</span><span class="sc-go">进入 →</span></div>
+    </article>
+
+    <article class="card sc">
+      <div class="sc-head">
+        <span class="sc-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="5" cy="10" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="5" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2.4" stroke="currentColor" stroke-width="1.5"/><path d="M7.2 9l5.6-3M7.2 11l5.6 3" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <div class="sc-title"><h3>ChainWeaver Flow</h3><p>多组件协同开发</p></div>
+        <span class="pill ok">可访问</span>
+      </div>
+      <p class="sc-desc">从 TAPD 导入需求，按工作区编排方案、实现、评审到交付的跨仓流程。</p>
+      <div class="sc-foot"><span>192.168.40.247:18092</span><span class="sc-go">进入 →</span></div>
+    </article>
+
+    <article class="card sc">
+      <div class="sc-head">
+        <span class="sc-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="3.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="11.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <div class="sc-title"><h3>ChainWeaver Env</h3><p>环境编排与租约</p></div>
+        <span class="pill ok">4 空闲</span>
+      </div>
+      <p class="sc-desc">查看环境池占用、健康状态与租约情况。</p>
+      <div class="sc-foot"><span>更新于刚刚</span><span class="sc-go">查看 →</span></div>
+    </article>
+  </div>
+
+  <h2 class="section-title" style="margin-top:28px">自动化</h2>
+  <div class="grid-2">
+    <article class="card sc">
+      <div class="sc-head">
+        <span class="sc-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="3.5" y="6.5" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7.6" cy="10.8" r="1.15" fill="currentColor"/><circle cx="12.4" cy="10.8" r="1.15" fill="currentColor"/></svg></span>
+        <div class="sc-title"><h3>E2E 集成测试 · 每日巡检</h3><p>IDA · MIRA · DPM · 每天 08:00</p></div>
+        <span class="pill idle">未执行</span>
+      </div>
+      <p class="sc-desc">每天把所有主流程依次跑一遍，结果发到指定邮箱。</p>
+      <div class="sc-foot"><span>尚未执行</span><span class="sc-go">查看 →</span></div>
+    </article>
+  </div>
+</main>
+</body>
+</html>

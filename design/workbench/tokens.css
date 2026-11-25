@@ -1,0 +1,79 @@
+/* 研发工作台重构稿 — 共用变量，与线上 styles.css 对齐，便于定稿后直接映射 */
+:root {
+  --ink: #202020;
+  --body: #404040;
+  --muted: #6b6b6b;
+  --muted-2: #5f6b7a;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 18px;
+  --line: #e7e7e7;
+  --blue: #0052d9;
+  --blue-dark: #0045ba;
+  --blue-soft: #f2f6fd;
+  --soft: #f7f7f7;
+  --paper: #f2f4f8;
+  --surface: #fff;
+  --radius: 8px;
+  --radius-ctl: 8px;
+  /* 对比度修到 4.6:1 以上（原 #18845b 在白底只有 4.2:1 的软底版本不达标） */
+  --green: #157a53;
+  --green-soft: #e8f6ef;
+  --red: #c63832;
+  --red-soft: #fdeeec;
+  --amber: #a15a08;
+  --amber-soft: #fdf3e3;
+  --shadow: 0 2px 12px rgba(55, 99, 170, .06);
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--body);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  -webkit-font-smoothing: antialiased;
+}
+.header {
+  display: flex; align-items: center; gap: 40px;
+  height: 64px; padding: 0 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-size: var(--fs-xl); font-weight: 600; color: var(--ink); }
+.brand-mark {
+  width: 32px; height: 32px; border-radius: 9px; background: var(--blue);
+  display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 15px;
+}
+.nav { display: flex; gap: 6px; margin: 0 auto; }
+.nav a {
+  display: flex; align-items: center; gap: 7px;
+  height: 64px; padding: 0 20px;
+  color: var(--muted); text-decoration: none;
+  font-size: 14px; font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+.nav a.active { color: var(--blue); border-bottom-color: var(--blue); }
+.main { padding: 24px 32px 40px; }
+.section-title {
+  margin: 0 0 12px;
+  font-size: var(--fs-lg); font-weight: 600; color: var(--ink); letter-spacing: -.2px;
+}
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px 2px 7px; border-radius: 999px;
+  font-size: var(--fs-xs); white-space: nowrap;
+}
+.pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.ok { color: #0f6a47; background: var(--green-soft); }
+.pill.bad { color: #a82c27; background: var(--red-soft); }
+.pill.warn { color: #8a4a03; background: var(--amber-soft); }
+.pill.idle { color: #55606e; background: var(--soft); }

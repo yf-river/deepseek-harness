@@ -230,44 +230,141 @@ function statusBadge(health) {
   return badge
 }
 
+// 站点按 group 分到三块里。没写 group 的归到「开发」，保证新站点不会消失。
+const GROUP_IDS = { dev: 'grid-dev', test: 'grid-test', ops: 'grid-ops' }
+
 function renderCards(healthByKey) {
-  siteGrid.replaceChildren()
+  Object.values(GROUP_IDS).forEach((id) => {
+    const node = document.getElementById(id)
+    if (node) node.replaceChildren()
+  })
+
   // 只给 showInGrid 的站点出卡片：顶部菜单已有的站点不在工作台里重复。
   sites.filter(showInGrid).forEach((site) => {
-    const card = el('button', 'site-card')
-    card.type = 'button'
-    card.dataset.key = site.key
-    card.title = `进入 ${site.title}`
-
-    const head = el('div', 'site-card-head')
-    const iconBox = el('div', 'site-card-icon')
-    iconBox.innerHTML = iconFor(site.icon)
-    head.appendChild(iconBox)
-
-    const heading = el('div', 'site-card-heading')
-    heading.appendChild(el('h3', '', site.title))
-    heading.appendChild(el('p', '', site.subtitle || site.label))
-    head.appendChild(heading)
-    head.appendChild(statusBadge(healthByKey[site.key]))
-    card.appendChild(head)
-
-    card.appendChild(el('p', 'site-card-desc', site.description || ''))
-
-    if (site.tags && site.tags.length) {
-      const tags = el('ul', 'site-card-tags')
-      site.tags.forEach((tag) => tags.appendChild(el('li', '', tag)))
-      card.appendChild(tags)
-    }
-
-    const foot = el('div', 'site-card-foot')
-    foot.appendChild(el('span', 'site-url', site.url))
-    const goLabel = el('span', 'site-go', '进入 →')
-    foot.appendChild(goLabel)
-    card.appendChild(foot)
-
-    card.addEventListener('click', () => selectTab('site/' + site.key))
-    siteGrid.appendChild(card)
+    const group = GROUP_IDS[site.group] ? site.group : 'dev'
+    const holder = document.getElementById(GROUP_IDS[group])
+    if (!holder) return
+    holder.appendChild(buildCard(site, healthByKey[site.key]))
   })
+
+  // Env 与机器人不是外部站点，不由 sites 驱动，单独生成到运维/测试组。
+  const opsHolder = document.getElementById(GROUP_IDS.ops)
+  if (opsHolder) opsHolder.appendChild(buildEnvCard())
+  const testHolder = document.getElementById(GROUP_IDS.test)
+  if (testHolder) testHolder.appendChild(buildRobotCard())
+
+  // 某个分组一个卡片都没有时整块隐藏，不留空标题。
+  Object.entries(GROUP_IDS).forEach(([group, id]) => {
+    const node = document.getElementById(id)
+    const section = node && node.closest('.wb-group')
+    if (section) section.hidden = !node.children.length
+  })
+}
+
+// buildEnvCard 生成环境管理卡片。状态条里的数字由 renderEnvPool 回填。
+function buildEnvCard() {
+  const card = el('button', 'wb-card')
+  card.type = 'button'
+  card.id = 'env-entry'
+  card.title = '查看 ChainWeaver Env 环境'
+
+  const top = el('div', 'wb-card-top')
+  const iconBox = el('div', 'wb-card-icon')
+  iconBox.innerHTML = iconFor('dashboard')
+  top.appendChild(iconBox)
+  const title = el('div', 'wb-card-title')
+  title.appendChild(el('h3', '', 'ChainWeaver Env'))
+  title.appendChild(el('span', '', '环境编排与租约'))
+  top.appendChild(title)
+  const status = el('span', 'pill is-idle', '检测中')
+  status.id = 'env-entry-status'
+  top.appendChild(status)
+  card.appendChild(top)
+
+  card.appendChild(el('p', 'wb-card-desc', '查看环境池占用、健康状态与租约情况。'))
+
+  const bar = el('div', 'wb-card-bar')
+  const kv = el('span', 'wb-kv')
+  kv.id = 'env-entry-metric'
+  kv.textContent = '总计 - · 空闲 -'
+  bar.appendChild(kv)
+  bar.appendChild(el('span', 'wb-spacer'))
+  bar.appendChild(el('span', 'wb-go', '查看 →'))
+  card.appendChild(bar)
+
+  card.addEventListener('click', () => selectTab('env'))
+  return card
+}
+
+// buildRobotCard 生成每日巡检卡片。状态条由 renderRobotEntry 回填下次执行时间。
+function buildRobotCard() {
+  const card = el('button', 'wb-card')
+  card.type = 'button'
+  card.id = 'robot-entry'
+  card.title = '查看机器人的设置与运行记录'
+
+  const top = el('div', 'wb-card-top')
+  const iconBox = el('div', 'wb-card-icon')
+  iconBox.innerHTML = iconFor('robot')
+  top.appendChild(iconBox)
+  const title = el('div', 'wb-card-title')
+  title.appendChild(el('h3', '', 'E2E 每日巡检'))
+  const sub = el('span', '', 'IDA · MIRA · DPM · 每天 08:00')
+  sub.id = 'robot-entry-sub'
+  title.appendChild(sub)
+  top.appendChild(title)
+  const status = el('span', 'pill is-idle', '未执行')
+  status.id = 'robot-entry-status'
+  top.appendChild(status)
+  card.appendChild(top)
+
+  card.appendChild(el('p', 'wb-card-desc', '每天把所有主流程依次跑一遍，结果发到指定邮箱。'))
+
+  const bar = el('div', 'wb-card-bar')
+  const kv = el('span', 'wb-kv')
+  kv.id = 'robot-entry-metric'
+  kv.textContent = '尚未执行'
+  bar.appendChild(kv)
+  bar.appendChild(el('span', 'wb-spacer'))
+  bar.appendChild(el('span', 'wb-go', '查看 →'))
+  card.appendChild(bar)
+
+  card.addEventListener('click', () => selectTab('robot'))
+  return card
+}
+
+// buildCard 生成一张工作台卡片：标题 + 状态 + 描述 + 底部状态条。
+function buildCard(site, health) {
+  const card = el('button', 'wb-card')
+  card.type = 'button'
+  card.dataset.key = site.key
+  card.title = `进入 ${site.title}`
+
+  const top = el('div', 'wb-card-top')
+  const iconBox = el('div', 'wb-card-icon')
+  iconBox.innerHTML = iconFor(site.icon)
+  top.appendChild(iconBox)
+
+  const title = el('div', 'wb-card-title')
+  title.appendChild(el('h3', '', site.title))
+  title.appendChild(el('span', '', site.subtitle || site.label))
+  top.appendChild(title)
+  top.appendChild(statusBadge(health))
+  card.appendChild(top)
+
+  card.appendChild(el('p', 'wb-card-desc', site.description || ''))
+
+  // 底部状态条：把「现在什么情况」压到一行，扫读比看描述快。
+  const bar = el('div', 'wb-card-bar')
+  const kv = el('span', 'wb-kv')
+  kv.appendChild(el('b', '', site.metric || '进入查看'))
+  bar.appendChild(kv)
+  bar.appendChild(el('span', 'wb-spacer'))
+  bar.appendChild(el('span', 'wb-go', '进入 →'))
+  card.appendChild(bar)
+
+  card.addEventListener('click', () => selectTab('site/' + site.key))
+  return card
 }
 
 // 健康探测放在渲染之后异步补齐，先出内容再出状态，避免首页被一次探测拖慢。
@@ -304,10 +401,10 @@ let envPollTimer = null
 let envLastUpdated = null
 
 const envEl = {
-  entry: document.getElementById('env-entry'),
-  entrySub: document.getElementById('env-entry-sub'),
-  entryStatus: document.getElementById('env-entry-status'),
-  entryMeta: document.getElementById('env-entry-meta'),
+  // 卡片是渲染时动态生成的，这里用 getter，避免模块加载时取到 null。
+  get entry() { return document.getElementById('env-entry') },
+  get entryStatus() { return document.getElementById('env-entry-status') },
+  get entryMetric() { return document.getElementById('env-entry-metric') },
   updated: document.getElementById('env-updated'),
   host: document.getElementById('env-host'),
   total: document.getElementById('env-total'),
@@ -416,13 +513,14 @@ function renderEnvPool(pool) {
 
   // 首页卡片同步显示概况，不必进详情就能看出池子占用。
   if (envEl.entryStatus) {
-    envEl.entryStatus.className = 'status ' + (pool.leased > 0 ? 'status-down' : 'status-up')
-    envEl.entryStatus.textContent = `${pool.leased || 0}/${pool.total || 0} 占用`
+    const bad = pool.unhealthy > 0
+    envEl.entryStatus.className = 'pill ' + (bad ? 'is-bad' : 'is-ok')
+    envEl.entryStatus.textContent = bad
+      ? `${pool.unhealthy} 异常`
+      : `${pool.idle || 0} 空闲`
   }
-  if (envEl.entrySub) {
-    envEl.entrySub.textContent = pool.unhealthy > 0
-      ? `${pool.unhealthy} 个环境异常`
-      : `${pool.idle || 0} 个空闲 · ${pool.leased || 0} 个已租用`
+  if (envEl.entryMetric) {
+    envEl.entryMetric.textContent = `总计 ${pool.total || 0} · 空闲 ${pool.idle || 0} · 已租用 ${pool.leased || 0}`
   }
   // 宿主机只有一个，写在页面顶部；各环境行不再重复。
   if (envEl.host) {
@@ -538,10 +636,11 @@ function relativeTime(date) {
   return `${hours}小时前`
 }
 
+// 只更新详情页的「更新于」。工作台卡片的状态条展示的是池子占用数，
+// 不再重复时间信息——那里放数字比放时间更有用。
 function renderEnvUpdated() {
   if (!envLastUpdated) return
   const text = relativeTime(envLastUpdated)
-  if (envEl.entryMeta) envEl.entryMeta.textContent = `更新于${text}`
   if (envEl.updated) envEl.updated.textContent = `更新于${text}`
 }
 
@@ -632,11 +731,11 @@ const robotEl = {
   sendmail: document.getElementById('robot-sendmail'),
   save: document.getElementById('robot-save'),
   run: document.getElementById('robot-run'),
-  entry: document.getElementById('robot-entry'),
-  entryDesc: document.getElementById('robot-entry-desc'),
-  entryStatus: document.getElementById('robot-entry-status'),
-  entrySub: document.getElementById('robot-entry-sub'),
-  entryMeta: document.getElementById('robot-entry-meta'),
+  // 同上：卡片动态生成，用 getter 延迟取。
+  get entry() { return document.getElementById('robot-entry') },
+  get entryStatus() { return document.getElementById('robot-entry-status') },
+  get entrySub() { return document.getElementById('robot-entry-sub') },
+  get entryMetric() { return document.getElementById('robot-entry-metric') },
   back: document.getElementById('robot-back'),
 }
 
@@ -714,7 +813,7 @@ function renderRobotState(payload) {
     const tone = running || state.verdict === 'PASS'
       ? 'status status-up'
       : state.verdict ? 'status status-down' : 'status status-unknown'
-    robotEl.entryStatus.className = tone
+    robotEl.entryStatus.className = 'pill ' + (running ? 'is-run' : state.verdict === 'PASS' ? 'is-ok' : state.verdict ? 'is-bad' : 'is-idle')
     robotEl.entryStatus.textContent = running ? '执行中' : state.verdict || '未执行'
     robotEl.entryStatus.title = state.endedAt ? `上次 ${beijingTime(state.endedAt)}` : ''
   }
@@ -723,22 +822,17 @@ function renderRobotState(payload) {
     const when = settings.enabled ? `每天 ${settings.schedule || '—'}` : '定时未启用'
     robotEl.entrySub.textContent = suites ? `${suites} · ${when}` : '每天定时执行'
   }
-  if (robotEl.entryDesc) {
-    robotEl.entryDesc.textContent = running
-      ? (state.message || '正在执行…')
-      : '每天把所有主流程依次跑一遍，结果发到指定邮箱。'
-  }
-  if (robotEl.entryMeta) {
+  if (robotEl.entryMetric) {
     if (running) {
-      robotEl.entryMeta.textContent = '正在执行'
+      robotEl.entryMetric.textContent = '正在执行'
+    } else if (payload.nextRunAt) {
+      robotEl.entryMetric.textContent = `下次 ${beijingTime(payload.nextRunAt)}`
     } else if (state.verdict) {
-      const tail = state.endedAt ? ` · ${beijingTime(state.endedAt)}` : ''
-      robotEl.entryMeta.textContent = `上次结果 ${state.verdict}${tail}`
+      robotEl.entryMetric.textContent = `上次 ${state.verdict}`
     } else {
-      robotEl.entryMeta.textContent = '尚未执行'
+      robotEl.entryMetric.textContent = '尚未执行'
     }
   }
-
   // 执行中持续轮询，结束后自动停。
   if (running && !robotPollTimer) {
     robotPollTimer = setInterval(loadRobot, 5000)

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="dsh-design" content="web 1440x900">
+<title>方案 C · 分组卡片 + 状态条</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* 方案 C：保留卡片，但按「开发 / 测试 / 运维」重新分组，
+   每张卡片底部加一条状态条，把可用性、耗时、更新这些读数值显式化。 */
+
+.group { margin-bottom: 26px; }
+.group:first-of-type { margin-top: 0; }
+.group-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+.group-head h2 { margin: 0; font-size: var(--fs-md); font-weight: 600; color: var(--ink); }
+.group-head .rule { flex: 1; height: 1px; background: var(--line); }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.cards.two { grid-template-columns: repeat(2, 1fr); }
+
+.c {
+  display: flex; flex-direction: column;
+  padding: 18px; gap: 12px;
+  transition: border-color .15s;
+}
+.c:hover { border-color: #cddcf5; }
+.c-top { display: flex; align-items: flex-start; gap: 11px; }
+.c-ico {
+  width: 36px; height: 36px; flex-shrink: 0; border-radius: 9px;
+  display: grid; place-items: center;
+  background: var(--blue-soft); color: var(--blue);
+}
+.c-ico.gray { background: var(--soft); color: var(--muted-2); }
+.c-t { flex: 1; min-width: 0; }
+.c-t h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; color: var(--ink); }
+.c-t span { display: block; margin-top: 3px; font-size: var(--fs-xs); color: var(--muted); }
+.c-d { margin: 0; font-size: var(--fs-sm); color: var(--body); line-height: 1.7; }
+
+/* 状态条：把读数值集中在一行，扫一眼就知道这卡现在什么情况 */
+.c-status {
+  display: flex; align-items: center; gap: 10px;
+  padding-top: 12px; margin-top: auto;
+  border-top: 1px solid #f3f3f3;
+  font-size: var(--fs-xs); color: var(--muted-2);
+}
+.c-status .kv { display: flex; align-items: baseline; gap: 4px; }
+.c-status .kv b { color: var(--ink); font-weight: 600; }
+.c-status .spacer { flex: 1; }
+.c-go {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--blue); font-weight: 500; white-space: nowrap;
+}
+
+/* 背景：冷调柔光 + 极细网格。tokens.css 里是纯色，这里覆盖成有层次的底。
+   两处径向渐变给左上/右上一点光，网格 30px、透明度 4.5%，远处几乎不可见。 */
+body {
+  background-color: #e8eef7;
+  background-image:
+    radial-gradient(1100px 460px at 12% -12%, rgba(0, 82, 217, .16), transparent 58%),
+    radial-gradient(820px 380px at 98% 0%, rgba(92, 146, 255, .13), transparent 54%),
+    linear-gradient(rgba(30, 58, 102, .022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 58, 102, .022) 1px, transparent 1px);
+  background-size: auto, auto, 40px 40px, 40px 40px;
+  background-attachment: fixed, fixed, scroll, scroll;
+}
+/* 卡片加一层极浅的顶部高光，配新背景不至于糊成一片 */
+.card { box-shadow: 0 1px 2px rgba(28, 54, 96, .04), 0 8px 24px rgba(28, 54, 96, .06); }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="brand"><span class="brand-mark">C</span>ChainWeaver</div>
+  <nav class="nav">
+    <a href="#">研效数据看板</a>
+    <a href="#">质量数据看板</a>
+    <a href="#" class="active">研发工作台</a>
+  </nav>
+</header>
+
+<main class="main">
+  <!-- 开发 -->
+  <section class="group">
+    <div class="group-head">
+      <h2>开发</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="cards two">
+      <article class="card c">
+        <div class="c-top">
+          <span class="c-ico"><svg width="19" height="19" viewBox="0 0 20 20" fill="none"><circle cx="5" cy="10" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="5" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2.4" stroke="currentColor" stroke-width="1.5"/><path d="M7.2 9l5.6-3M7.2 11l5.6 3" stroke="currentColor" stroke-width="1.5"/></svg></span>
+          <div class="c-t"><h3>ChainWeaver Flow</h3><span>多组件协同开发</span></div>
+          <span class="pill ok">可访问</span>
+        </div>
+        <p class="c-d">从 TAPD 导入需求，按工作区编排方案、实现、评审到交付的跨仓流程。</p>
+        <div class="c-status">
+          <span class="kv">响应 <b>1ms</b></span>
+          <span class="spacer"></span>
+          <span class="c-go">进入 →</span>
+        </div>
+      </article>
+
+      <article class="card c">
+        <div class="c-top">
+          <span class="c-ico"><svg width="19" height="19" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6.5" height="6.5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="10.5" y="3" width="6.5" height="6.5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="10.5" width="6.5" height="6.5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="10.5" y="10.5" width="6.5" height="6.5" rx="1.6" stroke="currentColor" stroke-width="1.5"/></svg></span>
+          <div class="c-t"><h3>研效数据看板</h3><span>研发效能度量</span></div>
+          <span class="pill ok">顶部菜单</span>
+        </div>
+        <p class="c-d">需求交付、迭代效率与人员产出的度量视图。</p>
+        <div class="c-status">
+          <span class="kv">迭代视角 · 全部团队</span>
+          <span class="spacer"></span>
+          <span class="c-go">进入 →</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- 测试 -->
+  <section class="group">
+    <div class="group-head">
+      <h2>测试</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="cards two">
+      <article class="card c">
+        <div class="c-top">
+          <span class="c-ico"><svg width="19" height="19" viewBox="0 0 20 20" fill="none"><path d="M8 3.5h6.5a2 2 0 0 1 2 2V9M8 3.5v10a2 2 0 0 0 2 2h6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/></svg></span>
+          <div class="c-t"><h3>ChainWeaver Test</h3><span>跨组件集成测试</span></div>
+          <span class="pill ok">可访问</span>
+        </div>
+        <p class="c-d">选择主流程与基线分支执行集成测试，查看运行编号、阶段耗时与结果明细。</p>
+        <div class="c-status">
+          <span class="kv">最近 <b>10</b> 次运行</span>
+          <span class="spacer"></span>
+          <span class="c-go">进入 →</span>
+        </div>
+      </article>
+
+      <article class="card c">
+        <div class="c-top">
+          <span class="c-ico gray"><svg width="19" height="19" viewBox="0 0 20 20" fill="none"><rect x="3.5" y="6.5" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7.6" cy="10.8" r="1.15" fill="currentColor"/><circle cx="12.4" cy="10.8" r="1.15" fill="currentColor"/></svg></span>
+          <div class="c-t"><h3>E2E 每日巡检</h3><span>IDA · MIRA · DPM · 每天 08:00</span></div>
+          <span class="pill idle">未执行</span>
+        </div>
+        <p class="c-d">每天把所有主流程依次跑一遍，结果发到指定邮箱。</p>
+        <div class="c-status">
+          <span class="kv">下次 <b>明天 08:00</b></span>
+          <span class="spacer"></span>
+          <span class="c-go">查看 →</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- 运维 -->
+  <section class="group">
+    <div class="group-head">
+      <h2>运维</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="cards two">
+      <article class="card c">
+        <div class="c-top">
+          <span class="c-ico"><svg width="19" height="19" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="3.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="11.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><circle cx="5.6" cy="6" r="1" fill="currentColor"/><circle cx="5.6" cy="14" r="1" fill="currentColor"/></svg></span>
+          <div class="c-t"><h3>ChainWeaver Env</h3><span>环境编排与租约</span></div>
+          <span class="pill ok">4 空闲</span>
+        </div>
+        <p class="c-d">查看环境池占用、健康状态与租约情况。</p>
+        <div class="c-status">
+          <span class="kv">总计 <b>4</b></span>
+          <span class="kv">空闲 <b>4</b></span>
+          <span class="kv">已租用 <b>0</b></span>
+          <span class="spacer"></span>
+          <span class="c-go">查看 →</span>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+</body>
+</html>
