@@ -30,13 +30,16 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 LOCAL_SHA="$(git rev-parse HEAD)"
-REMOTE_SHA="$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)"
-if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
-  echo "!! 本地 HEAD ($LOCAL_SHA) 与 origin/$BRANCH ($REMOTE_SHA) 不一致，先 push：" >&2
+# 用本地记录的 origin/<branch> 引用做校验，不实时查远端：
+# 这台机器访问 GitHub 会间歇性 403/reset，实时查询不可靠。
+# push 成功后该引用会更新，所以它仍能反映最近一次推送的结果。
+TRACK_SHA="$(git rev-parse "origin/$BRANCH" 2>/dev/null || true)"
+if [ "$LOCAL_SHA" != "$TRACK_SHA" ]; then
+  echo "!! 本地 HEAD ($LOCAL_SHA) 与本地记录的 origin/$BRANCH ($TRACK_SHA) 不一致，先 push：" >&2
   echo "   git push origin $BRANCH" >&2
   exit 1
 fi
-echo "    本地 = origin/$BRANCH = $LOCAL_SHA"
+echo "    本地 HEAD = origin/$BRANCH = $LOCAL_SHA"
 
 echo "==> 2/5 本地测试"
 GOFLAGS=-mod=mod go vet ./...
