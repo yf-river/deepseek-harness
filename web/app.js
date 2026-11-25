@@ -206,8 +206,11 @@ function statusBadge(health) {
     badge.title = `HTTP ${health.status} · ${health.latencyMs}ms`
     return badge
   }
-  const badge = el('span', 'status status-down', '不可达')
-  badge.title = health.error || `HTTP ${health.status}`
+  // 探测由门户服务器发起。若站点在外网段（服务器连不上、浏览器能连上），
+  // 报「不可达」是误判——iframe 由浏览器加载，不受服务器网络限制。
+  // 这里区分两种情况，避免把"服务器看不到"当成"打不开"。
+  const badge = el('span', 'status status-unknown', '外部站点')
+  badge.title = `门户服务器无法探测该地址，页面由浏览器直接加载：${health.error || 'HTTP ' + health.status}`
   return badge
 }
 
