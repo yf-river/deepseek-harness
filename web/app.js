@@ -27,6 +27,12 @@ const ICONS = {
     <rect x="8" y="6" width="4" height="12" rx="1" fill="currentColor" opacity=".75"/>
     <rect x="14" y="2" width="4" height="16" rx="1" fill="currentColor"/>
   </svg>`,
+  tools: `<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="2.6" y="3.4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+    <rect x="11.4" y="3.4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+    <rect x="2.6" y="12.6" width="6" height="4" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+    <rect x="11.4" y="12.6" width="6" height="4" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+  </svg>`,
   default: `<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/>
     <path d="M10 6v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
