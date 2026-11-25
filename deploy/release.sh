@@ -59,14 +59,17 @@ echo "    包大小: $(du -h "$TARBALL" | cut -f1)"
 scp -q -o BatchMode=yes "$TARBALL" "$TARGET_HOST:/tmp/studio-src.tar.gz"
 
 echo "==> 4/5 远端解包并构建"
+# 远端默认 shell 是 zsh 且 PATH 不含 go，这里显式指定解释器与工具路径。
 ssh -o BatchMode=yes "$TARGET_HOST" "
-  set -euo pipefail
+  set -eu
+  GO=/usr/local/go/bin/go
+  test -x \$GO || { echo '!! 远端缺少 Go: '\$GO >&2; exit 1; }
   rm -rf $REMOTE_SRC
   mkdir -p $REMOTE_SRC
   tar -xzf /tmp/studio-src.tar.gz -C $REMOTE_SRC
   rm -f /tmp/studio-src.tar.gz
   cd $REMOTE_SRC
-  GOFLAGS=-mod=mod CGO_ENABLED=0 go build -trimpath -ldflags '-s -w' -o /tmp/chainweaver-studio.build .
+  GOFLAGS=-mod=mod CGO_ENABLED=0 \$GO build -trimpath -ldflags '-s -w' -o /tmp/chainweaver-studio.build .
   chmod 755 /tmp/chainweaver-studio.build
   echo -n '    远端构建完成: '; ls -lh /tmp/chainweaver-studio.build | awk '{print \$5}'
 "
