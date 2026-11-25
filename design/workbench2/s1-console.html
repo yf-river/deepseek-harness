@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="dsh-design" content="web 1440x900">
+<title>风格 1 · 控制台</title>
+<style>
+/* 方向：专业科技 / 控制台。信息密度高、对齐严格、状态用小色点。
+   和原来的白卡片列表完全不同：这是「一块仪表盘」，不是「几张卡片」。 */
+:root {
+  --bg: #f5f7fb;
+  --surface: #fff;
+  --ink: #0f172a;
+  --muted: #55657d;
+  --line: #e2e8f0;
+  --primary: #2457f5;
+  --teal: #0a7574;
+  --ok: #0f7b52;
+  --bad: #c0322c;
+  --warn: #a15a08;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(15, 23, 42, .08);
+  --sans: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--sans); font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 顶栏：左侧品牌，中间签，右侧一个主操作 */
+.top {
+  display: flex; align-items: center; gap: 36px;
+  height: 56px; padding: 0 24px;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 20;
+}
+.brand { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; letter-spacing: -.3px; }
+.mark { width: 26px; height: 26px; border-radius: 7px; background: var(--primary); display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700; }
+.tabs { display: flex; gap: 2px; }
+.tabs a {
+  padding: 6px 13px; border-radius: 6px;
+  color: var(--muted); text-decoration: none; font-size: 13px;
+}
+.tabs a.on { background: #eef2ff; color: var(--primary); font-weight: 500; }
+.top-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.dot-live { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.dot-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(15,123,82,.15); }
+.btn-primary {
+  padding: 6px 14px; border-radius: 6px; border: none;
+  background: var(--primary); color: #fff; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+}
+
+.wrap { padding: 20px 24px 40px; max-width: 1560px; margin: 0 auto; }
+
+/* 顶部读数条：四格数字，横向一条，不做成卡片 */
+.readout {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); margin-bottom: 20px;
+  overflow: hidden;
+}
+.rd { padding: 14px 18px; border-right: 1px solid var(--line); }
+.rd:last-child { border-right: none; }
+.rd-k { color: var(--muted); font-size: 12px; letter-spacing: .3px; }
+.rd-v { display: flex; align-items: baseline; gap: 5px; margin-top: 6px; }
+.rd-v strong { font-size: 22px; font-weight: 600; letter-spacing: -.6px; }
+.rd-v span { color: var(--muted); font-size: 12px; }
+.rd-trend { margin-top: 4px; font-size: 12px; color: var(--teal); }
+
+/* 主区：左列表 + 右状态栏 */
+.body { display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.panel-h {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; border-bottom: 1px solid var(--line);
+}
+.panel-h h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.panel-h .n { color: var(--muted); font-size: 12px; }
+
+/* 站点行：一行一条，44px 行高，严格对齐 */
+.srow {
+  display: grid; grid-template-columns: 1fr 96px 84px 56px;
+  align-items: center; gap: 16px;
+  height: 52px; padding: 0 18px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer; transition: background .12s;
+}
+.srow:last-child { border-bottom: none; }
+.srow:hover { background: #f8fafc; }
+.srow-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.srow-ico { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; background: #eef2ff; color: var(--primary); flex-shrink: 0; }
+.srow-ico svg { width: 15px; height: 15px; }
+.srow-t { min-width: 0; }
+.srow-t b { display: block; font-size: 13px; font-weight: 500; color: var(--ink); }
+.srow-t i { display: block; font-style: normal; font-size: 12px; color: var(--muted); margin-top: 1px; }
+.srow-metric { color: var(--muted); font-size: 12px; text-align: right; }
+.st { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; white-space: nowrap; }
+.st::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.st.ok { color: var(--ok); }
+.st.bad { color: var(--bad); }
+.st.warn { color: var(--warn); }
+.st.idle { color: #64748b; }
+.srow-act { text-align: right; color: var(--primary); font-size: 12px; }
+
+/* 右栏：环境池分布 + 巡检 */
+.side { display: flex; flex-direction: column; gap: 16px; }
+.mini { padding: 14px 16px; }
+.mini h3 { margin: 0 0 12px; font-size: 12px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.bar { display: flex; gap: 3px; height: 6px; margin-bottom: 12px; }
+.bar i { flex: 1; border-radius: 2px; background: #d7f0e6; }
+.bar i.used { background: #fbe6c4; }
+.kv { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); padding: 4px 0; }
+.kv b { color: var(--ink); font-weight: 600; }
+.mini-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); padding: 5px 0; }
+.mini-row b { color: var(--ink); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand"><span class="mark">C</span>ChainWeaver</div>
+  <div class="tabs">
+    <a href="#">研效数据看板</a>
+    <a href="#">质量数据看板</a>
+    <a href="#" class="on">研发工作台</a>
+  </div>
+  <div class="top-right">
+    <span class="dot-live">环境池已同步</span>
+    <button class="btn-primary">立即巡检</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- 读数条 -->
+  <div class="readout">
+    <div class="rd">
+      <div class="rd-k">环境池空闲</div>
+      <div class="rd-v"><strong>4</strong><span>/ 4</span></div>
+      <div class="rd-trend">全部可用</div>
+    </div>
+    <div class="rd">
+      <div class="rd-k">已租用</div>
+      <div class="rd-v"><strong>0</strong><span>个</span></div>
+      <div class="rd-trend" style="color:var(--muted)">无占用</div>
+    </div>
+    <div class="rd">
+      <div class="rd-k">可用站点</div>
+      <div class="rd-v"><strong>2</strong><span>/ 4</span></div>
+      <div class="rd-trend" style="color:var(--muted)">2 个浏览器直连</div>
+    </div>
+    <div class="rd">
+      <div class="rd-k">下次巡检</div>
+      <div class="rd-v"><strong>08:00</strong></div>
+      <div class="rd-trend" style="color:var(--muted)">明天</div>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- 站点列表 -->
+    <section class="panel">
+      <div class="panel-h">
+        <h2>全部入口</h2>
+        <span class="n">5 项</span>
+      </div>
+
+      <div class="srow">
+        <div class="srow-name">
+          <span class="srow-ico"><svg viewBox="0 0 20 20" fill="none"><rect x="2" y="10" width="4" height="8" rx="1" fill="currentColor" opacity=".5"/><rect x="8" y="6" width="4" height="12" rx="1" fill="currentColor" opacity=".75"/><rect x="14" y="2" width="4" height="16" rx="1" fill="currentColor"/></svg></span>
+          <div class="srow-t"><b>研效数据看板</b><i>研发效能度量 · 开发</i></div>
+        </div>
+        <div class="srow-metric">迭代视角</div>
+        <div><span class="st idle">外部站点</span></div>
+        <div class="srow-act">进入 →</div>
+      </div>
+
+      <div class="srow">
+        <div class="srow-name">
+          <span class="srow-ico"><svg viewBox="0 0 20 20" fill="none"><circle cx="5" cy="10" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="5" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2.4" stroke="currentColor" stroke-width="1.5"/><path d="M7.2 9l5.6-3M7.2 11l5.6 3" stroke="currentColor" stroke-width="1.5"/></svg></span>
+          <div class="srow-t"><b>ChainWeaver Flow</b><i>多组件协同开发 · 开发</i></div>
+        </div>
+        <div class="srow-metric">1ms</div>
+        <div><span class="st ok">可访问</span></div>
+        <div class="srow-act">进入 →</div>
+      </div>
+
+      <div class="srow">
+        <div class="srow-name">
+          <span class="srow-ico"><svg viewBox="0 0 20 20" fill="none"><path d="M8 3.5h6.5a2 2 0 0 1 2 2V9M8 3.5v10a2 2 0 0 0 2 2h6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/></svg></span>
+          <div class="srow-t"><b>ChainWeaver Test</b><i>跨组件集成测试 · 测试</i></div>
+        </div>
+        <div class="srow-metric">10 次运行</div>
+        <div><span class="st ok">可访问</span></div>
+        <div class="srow-act">进入 →</div>
+      </div>
+
+      <div class="srow">
+        <div class="srow-name">
+          <span class="srow-ico" style="background:#f1f5f9;color:#64748b"><svg viewBox="0 0 20 20" fill="none"><rect x="3.5" y="6.5" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7.6" cy="10.8" r="1.15" fill="currentColor"/><circle cx="12.4" cy="10.8" r="1.15" fill="currentColor"/></svg></span>
+          <div class="srow-t"><b>E2E 每日巡检</b><i>IDA · MIRA · DPM · 测试</i></div>
+        </div>
+        <div class="srow-metric">08:00</div>
+        <div><span class="st idle">未执行</span></div>
+        <div class="srow-act">查看 →</div>
+      </div>
+
+      <div class="srow">
+        <div class="srow-name">
+          <span class="srow-ico" style="background:#e6f7f7;color:var(--teal)"><svg viewBox="0 0 20 20" fill="none"><rect x="2.5" y="3.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="11.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><circle cx="5.6" cy="6" r="1" fill="currentColor"/><circle cx="5.6" cy="14" r="1" fill="currentColor"/></svg></span>
+          <div class="srow-t"><b>ChainWeaver Env</b><i>环境编排与租约 · 运维</i></div>
+        </div>
+        <div class="srow-metric">4 空闲</div>
+        <div><span class="st ok">正常</span></div>
+        <div class="srow-act">查看 →</div>
+      </div>
+    </section>
+
+    <!-- 右栏 -->
+    <aside class="side">
+      <section class="panel mini">
+        <h3>环境池 <span class="st ok">4 空闲</span></h3>
+        <div class="bar"><i></i><i></i><i></i><i></i></div>
+        <div class="kv"><span>总计</span><b>4</b></div>
+        <div class="kv"><span>空闲</span><b>4</b></div>
+        <div class="kv"><span>已租用</span><b>0</b></div>
+        <div class="kv"><span>异常</span><b>0</b></div>
+      </section>
+
+      <section class="panel mini">
+        <h3>每日巡检 <span class="st idle">未执行</span></h3>
+        <div class="mini-row"><span>下次执行</span><b>明天 08:00</b></div>
+        <div class="mini-row"><span>主流程</span><b>3 个</b></div>
+        <div class="mini-row"><span>收件人</span><b>2 人</b></div>
+        <div class="mini-row"><span>上次结果</span><b>—</b></div>
+      </section>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

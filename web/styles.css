@@ -1220,27 +1220,21 @@ a.site-card {
   .embed-frame { height: calc(100vh - 56px - 110px - 52px); }
 }
 
-/* ─────────────── 研发工作台 ─────────────── */
-/* 工作台按「开发 / 测试 / 运维」分组，每组一个标题 + 两列卡片。
-   分组本身承载语义，所以分组标题旁不再写复述性说明文案。 */
+/* ─────────────── 研发工作台（柔光玻璃 · 蓝色系） ─────────────── */
+/* 视觉：底色铺三团冷调柔光，卡片是毛玻璃浮层，正文保持实色保证可读。
+   与 ChainWeaver 的蓝色品牌一致；不用彩虹渐变，靠同色系不同明度做层次。
+   分组（开发/测试/运维）本身承载语义，标题旁不再写复述性文案。 */
 
-/* 页面底色：冷调柔光 + 极细网格，让白卡片浮起来。
-   网格 40px、透明度 2.2%，远处几乎不可见，近处能感觉到质感。 */
 .app-main#view-home {
   max-width: none;
-  /* 铺满整幅：用负 margin 抵消 .app-main 的内边距，再用等量 padding 把内容放回来。
-     不能只写 padding 不写 margin，否则左右会被父容器的 32px 挤掉。 */
-  padding: 26px 32px 48px;
-  background-color: #e8eef7;
+  padding: 30px 32px 48px;
+  background-color: #e6eef9;
   background-image:
-    radial-gradient(1100px 460px at 12% -12%, rgba(0, 82, 217, .16), transparent 58%),
-    radial-gradient(820px 380px at 98% 0%, rgba(92, 146, 255, .13), transparent 54%),
-    linear-gradient(rgba(30, 58, 102, .022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(30, 58, 102, .022) 1px, transparent 1px);
-  background-size: auto, auto, 40px 40px, 40px 40px;
-  background-attachment: fixed, fixed, scroll, scroll;
-  /* 只抵掉纵向：横向不做负 margin，否则标题会贴到屏幕边缘。
-     父容器 .app-main 的左右 32px 内边距正好给内容留出呼吸。 */
+    radial-gradient(circle at 16% 10%, #cfe2ff 0, transparent 46%),
+    radial-gradient(circle at 88% 70%, #c2e9f2 0, transparent 48%),
+    radial-gradient(circle at 50% 98%, #d8e4fb 0, transparent 44%);
+  background-attachment: fixed;
+  /* 只抵掉纵向：横向留出 .app-main 的 32px，避免标题贴屏幕边缘 */
   margin-top: -24px;
   margin-bottom: -40px;
 }
@@ -1248,55 +1242,69 @@ a.site-card {
 .wb-group { margin-bottom: 26px; }
 .wb-group:last-of-type { margin-bottom: 0; }
 
+/* 分组标题：小、灰、带一条延伸线 */
 .wb-group-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   margin: 0 0 12px;
-  font-size: var(--fs-md);
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -.2px;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--muted-2);
+  letter-spacing: 1.4px;
+}
+.wb-group-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(31, 95, 214, .14);
 }
 
 .wb-cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
-/* 卡片本体：标题 / 状态 / 描述 / 状态条四段，状态条贴底 */
+/* 卡片：毛玻璃浮层 */
 .wb-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 18px;
+  padding: 20px;
   text-align: left;
   font: inherit;
   color: var(--body);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 2px rgba(28, 54, 96, .04), 0 8px 24px rgba(28, 54, 96, .06);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .58);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 10px 30px rgba(23, 58, 122, .12);
   cursor: pointer;
-  transition: border-color .15s, box-shadow .15s, transform .15s;
+  transition: transform .18s, box-shadow .18s, background .18s;
 }
 .wb-card:hover {
-  border-color: #cddcf5;
-  box-shadow: 0 2px 4px rgba(28, 54, 96, .06), 0 12px 28px rgba(28, 54, 96, .09);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, .76);
+  box-shadow: 0 16px 40px rgba(23, 58, 122, .17);
 }
 .wb-card:focus-visible {
   outline: none;
   border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(0, 82, 217, .16);
+  box-shadow: 0 0 0 3px rgba(0, 82, 217, .2), 0 10px 30px rgba(23, 58, 122, .12);
 }
 
-.wb-card-top { display: flex; align-items: flex-start; gap: 11px; }
+.wb-card-top { display: flex; align-items: center; gap: 12px; }
 .wb-card-icon {
-  width: 36px; height: 36px; flex-shrink: 0;
+  width: 40px; height: 40px; flex-shrink: 0;
   display: grid; place-items: center;
-  border-radius: 9px;
-  background: var(--blue-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .92);
   color: var(--blue);
+  box-shadow: 0 2px 8px rgba(23, 58, 122, .08);
 }
-.wb-card-icon svg { width: 19px; height: 19px; }
+.wb-card-icon svg { width: 20px; height: 20px; }
 
 .wb-card-title { flex: 1; min-width: 0; }
 .wb-card-title h3 {
@@ -1307,7 +1315,7 @@ a.site-card {
 }
 .wb-card-title span {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   font-size: var(--fs-xs);
   color: var(--muted);
 }
@@ -1315,27 +1323,41 @@ a.site-card {
 .wb-card-desc {
   margin: 0;
   font-size: var(--fs-sm);
-  color: var(--body);
-  line-height: 1.7;
+  color: var(--muted);
+  line-height: 1.75;
 }
 
-/* 状态条：把「现在什么情况」压到一行，扫读比看描述快 */
+/* 状态条：一行读数，贴卡片底部 */
 .wb-card-bar {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid #f3f3f3;
+  padding-top: 13px;
+  border-top: 1px solid rgba(31, 95, 214, .1);
   font-size: var(--fs-xs);
   color: var(--muted-2);
 }
 .wb-kv { display: inline-flex; align-items: baseline; gap: 4px; }
 .wb-kv b { color: var(--ink); font-weight: 600; }
 .wb-spacer { flex: 1; }
-.wb-go { color: var(--blue); font-weight: 500; white-space: nowrap; }
+.wb-go {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(31, 95, 214, .28);
+}
+/* 非主操作（查看类）用浅色，与「进入」区分开 */
+.wb-card[data-kind="view"] .wb-go {
+  background: rgba(31, 95, 214, .09);
+  color: var(--blue);
+  box-shadow: none;
+}
 
 @media (max-width: 980px) {
-  .app-main#view-home { padding: 20px 16px 32px; margin-top: -20px; margin-bottom: -32px; }
+  .app-main#view-home { padding: 20px 20px 32px; margin-top: -20px; margin-bottom: -32px; }
   .wb-cards { grid-template-columns: 1fr; }
 }

@@ -276,6 +276,7 @@ function buildEnvCard() {
   const card = el('button', 'wb-card')
   card.type = 'button'
   card.id = 'env-entry'
+  card.dataset.kind = 'view'
   card.title = '查看 ChainWeaver Env 环境'
 
   const top = el('div', 'wb-card-top')
@@ -311,6 +312,7 @@ function buildRobotCard() {
   const card = el('button', 'wb-card')
   card.type = 'button'
   card.id = 'robot-entry'
+  card.dataset.kind = 'view'
   card.title = '查看机器人的设置与运行记录'
 
   const top = el('div', 'wb-card-top')
