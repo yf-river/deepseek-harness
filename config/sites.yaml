@@ -44,7 +44,8 @@ robot:
   # 下面两项只是首次启动的初始值；页面上勾选「执行后发邮件」「每天定时执行」并保存后，
   # 以 run/robot/settings.json 为准，改这里不再影响已保存的设置。
   send_mail: false
-  artifact_dir: /opt/chainweaver-studio/run/robot
+  # 运行记录数据库（robot.db）与设置都放在这里
+  artifact_dir: /opt/chainweaver-portal/run/robot
   enabled: false
 
 # ChainWeaver Env 环境管理。cwe 没有"列出环境"的 HTTP 接口，

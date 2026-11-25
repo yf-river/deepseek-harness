@@ -142,7 +142,7 @@ func TestClientRunOneReachesTerminal(t *testing.T) {
 
 	client := NewClient(fake.URL)
 	client.PollInterval = time.Millisecond
-	batch := &Batch{Dir: t.TempDir(), Key: "k"}
+	batch := &Batch{ID: "test", Key: "k"}
 	summary := client.runOne(context.Background(), batch, Suite{ID: "ida"})
 
 	if summary.Status != StatusPassed {
@@ -164,7 +164,7 @@ func TestClientRunOneHandlesSubmitFailure(t *testing.T) {
 
 	client := NewClient(fake.URL)
 	client.BusyRetries = 0
-	summary := client.runOne(context.Background(), &Batch{Dir: t.TempDir(), Key: "k"}, Suite{ID: "ida"})
+	summary := client.runOne(context.Background(), &Batch{ID: "test", Key: "k"}, Suite{ID: "ida"})
 	if summary.Status != StatusError {
 		t.Fatalf("提交失败应为 error，实际 %q", summary.Status)
 	}
@@ -248,17 +248,14 @@ func TestClientActiveRunsReportsError(t *testing.T) {
 }
 
 func TestNewBatchKeyIsUnique(t *testing.T) {
-	root := t.TempDir()
-	first, err := NewBatch(root)
-	if err != nil {
-		t.Fatalf("建批次失败: %v", err)
-	}
-	second, err := NewBatch(root)
-	if err != nil {
-		t.Fatalf("建批次失败: %v", err)
-	}
+	// 批次号不再建目录，直接生成身份。
+	first := NewBatchID()
+	second := NewBatchID()
 	if first.Key == second.Key {
 		t.Fatalf("两批次的键不应相同: %q", first.Key)
+	}
+	if !strings.HasPrefix(first.ID, "cwt-robot-") {
+		t.Fatalf("批次号格式不对: %q", first.ID)
 	}
 	if first.keyFor("ida") == first.keyFor("mira") {
 		t.Fatal("同一批次内不同 suite 的键应不同")

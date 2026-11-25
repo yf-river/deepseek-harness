@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -220,6 +219,29 @@ type Mailer struct {
 }
 
 // Send 发送邮件并返回 CLI 的原始输出。只有 CLI 返回成功回执才算发出。
+// SendText 把正文写成临时文件后发送，发完立即删除。
+// wecom-cli 只接受 file_path，所以必须落一个临时文件；
+// 放在系统临时目录而不是批次目录，避免为一次发信留下长期残留。
+func (m Mailer) SendText(ctx context.Context, subject, body string) (string, error) {
+	if m.DryRun {
+		return "已跳过发送（演练模式）", nil
+	}
+	temp, err := os.CreateTemp("", "cwt-mail-*.md")
+	if err != nil {
+		return "", fmt.Errorf("创建临时正文失败: %w", err)
+	}
+	path := temp.Name()
+	defer func() { _ = os.Remove(path) }()
+	if _, err := temp.WriteString(body); err != nil {
+		_ = temp.Close()
+		return "", fmt.Errorf("写入临时正文失败: %w", err)
+	}
+	if err := temp.Close(); err != nil {
+		return "", fmt.Errorf("关闭临时正文失败: %w", err)
+	}
+	return m.Send(ctx, subject, path)
+}
+
 func (m Mailer) Send(ctx context.Context, subject, bodyPath string) (string, error) {
 	if m.DryRun {
 		return "已跳过发送（演练模式）", nil
@@ -247,17 +269,3 @@ func (m Mailer) Send(ctx context.Context, subject, bodyPath string) (string, err
 	return text, nil
 }
 
-// WriteArtifacts 把正文与结果落盘，便于事后核对与补发。
-func WriteArtifacts(dir, subject, body string, results []RunSummary) error {
-	if err := os.WriteFile(filepath.Join(dir, "mail_body.md"), []byte(body), 0o600); err != nil {
-		return err
-	}
-	if err := os.WriteFile(filepath.Join(dir, "mail_subject.txt"), []byte(subject), 0o600); err != nil {
-		return err
-	}
-	payload, err := json.MarshalIndent(results, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(dir, "results.json"), payload, 0o600)
-}

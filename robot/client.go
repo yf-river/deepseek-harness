@@ -9,14 +9,13 @@
 package robot
 
 import (
+	"math/rand/v2"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -240,22 +239,26 @@ func (c *Client) ActiveRuns(ctx context.Context) (int, error) {
 
 // Batch 是一次巡检的产物目录与标识。每个 suite 的中间状态都落在目录里，
 // 进程中断后可以据此恢复，不必重新申请环境。
+// Batch 是一次巡检的身份。只带 ID，不再对应磁盘目录：
+// 运行记录统一写进 SQLite，批次号同时充当记录主键与幂等键前缀。
 type Batch struct {
-	Dir string
+	// ID 形如 cwt-robot-20260102T150405Z-a1b2c3，时间在前便于按时间排序。
+	ID  string
 	Key string
 }
 
-// NewBatch 在 root 下建立批次目录。
-func NewBatch(root string) (*Batch, error) {
-	if err := os.MkdirAll(root, 0o700); err != nil {
-		return nil, err
-	}
-	dir, err := os.MkdirTemp(root, "cwt-robot-")
-	if err != nil {
-		return nil, err
-	}
+// charset 用于批次号的随机后缀，够用即可，不承担安全用途。
+const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+// NewBatchID 生成一个新的批次身份，不创建任何目录或文件。
+func NewBatchID() *Batch {
 	stamp := time.Now().UTC().Format("20060102T150405Z")
-	return &Batch{Dir: dir, Key: fmt.Sprintf("cwt-robot-%s-%s", stamp, filepath.Base(dir))}, nil
+	suffix := make([]byte, 6)
+	for index := range suffix {
+		suffix[index] = charset[rand.IntN(len(charset))]
+	}
+	id := fmt.Sprintf("cwt-robot-%s-%s", stamp, string(suffix))
+	return &Batch{ID: id, Key: id}
 }
 
 // keyFor 给单个 suite 派生幂等键：同一批次内同 suite 始终同键。
@@ -283,8 +286,6 @@ func (c *Client) runOne(ctx context.Context, batch *Batch, suite Suite) RunSumma
 		return summary
 	}
 	summary.DetailURL = fmt.Sprintf("%s/#run=%s", "http://192.168.40.247:18091", runID)
-	// 立即记录 run_id：即使后续轮询失败，也知道本批次提交了哪个任务。
-	_ = os.WriteFile(filepath.Join(batch.Dir, suite.ID+".run-id"), []byte(runID), 0o600)
 
 	deadline := time.Now().Add(c.RunTimeout)
 	for {

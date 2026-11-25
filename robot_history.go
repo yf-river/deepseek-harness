@@ -1,16 +1,13 @@
-// 执行历史：把每次批次的 final-state.json 汇总成列表。
+// 执行历史的读写。
 //
-// 为什么读目录而不是另建数据库：每个批次本来就把 final-state.json 落在自己的目录里，
-// 目录本身就是一份不可变的历史记录。再存一份索引会出现两份真源不一致的问题。
+// 历史存在 SQLite（见 robot_store.go）而不是每个批次一个目录：
+// 目录方案每次请求都要遍历全部批次并逐个读文件，条目越多越慢，且没有清理机制。
+// 现在列表查询走索引，历史量增长不影响响应。
 
 package main
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
-	"sort"
-	"strings"
+	"log"
 
 	"chainweaver-studio/robot"
 )
@@ -25,9 +22,11 @@ type historyEntry struct {
 	EndedAt   string             `json:"endedAt"`
 	Subject   string             `json:"subject"`
 	MailState string             `json:"mailStatus"`
-	// PassCount / FailCount 让列表不必展开就能看出好坏比例。
-	PassCount int `json:"passCount"`
-	FailCount int `json:"failCount"`
+	// PassCount / FailCount / Incomplete 让列表不必展开就能看出分布。
+	// Incomplete 是「未取得结果」的条数，与失败分开统计。
+	PassCount  int `json:"passCount"`
+	FailCount  int `json:"failCount"`
+	Incomplete int `json:"incompleteCount"`
 	// Suites 是逐套件的简要结果，用于列表里的一行摘要。
 	Suites []historySuite `json:"suites"`
 	// Detail 是完整结果，只有展开某条时才需要。
@@ -46,87 +45,33 @@ type historySuite struct {
 	Failure      string `json:"failure"`
 }
 
-// loadHistory 从产物目录读取最近 limit 条批次，按时间倒序。
-// 单个批次文件损坏时跳过该条，不影响其余历史。
-// loadHistoryPage 返回第 page 页（每页 pageSize 条）的历史，并给出总条数用于分页。
+// loadHistoryPage 返回第 page 页历史与总条数，数据来自 SQLite。
 func (r *robotRunner) loadHistoryPage(page, pageSize int) ([]historyEntry, int) {
-	all := r.loadHistory(0)
-	total := len(all)
-	page, pageSize = normalizePage(page, pageSize)
-	start := (page - 1) * pageSize
-	if start >= total {
-		return nil, total
+	if r.store == nil {
+		return nil, 0
 	}
-	end := start + pageSize
-	if end > total {
-		end = total
+	items, total, err := r.store.loadPage(page, pageSize, true)
+	if err != nil {
+		log.Printf("读取运行记录失败: %v", err)
+		return nil, 0
 	}
-	return all[start:end], total
+	return items, total
 }
 
+// loadHistory 返回最近 limit 条历史，limit<=0 表示不限。
+// 仅用于补跑判断这类需要遍历的场景。
 func (r *robotRunner) loadHistory(limit int) []historyEntry {
-	entries, err := os.ReadDir(r.config.ArtifactDir)
-	if err != nil {
+	if r.store == nil {
 		return nil
 	}
-	dirs := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "cwt-robot-") {
-			continue
-		}
-		dirs = append(dirs, entry.Name())
+	size := limit
+	if size <= 0 {
+		size = 10000
 	}
-	// 目录名带 UTC 时间戳前缀，字典序即时间序；倒序取最近若干条。
-	sort.Sort(sort.Reverse(sort.StringSlice(dirs)))
-	if limit > 0 && len(dirs) > limit {
-		dirs = dirs[:limit]
+	items, _, err := r.store.loadPage(1, size, false)
+	if err != nil {
+		log.Printf("读取运行记录失败: %v", err)
+		return nil
 	}
-
-	history := make([]historyEntry, 0, len(dirs))
-	for _, dir := range dirs {
-		path := filepath.Join(r.config.ArtifactDir, dir, "final-state.json")
-		data, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		var state robotState
-		if err := json.Unmarshal(data, &state); err != nil {
-			continue
-		}
-		// 老批次缺 durationText 时补出来，保证列表里耗时列不为空。
-		for index := range state.Results {
-			if state.Results[index].DurationText == "" && state.Results[index].Duration != "" {
-				state.Results[index].DurationText = robot.FormatDuration(state.Results[index].Duration)
-			}
-		}
-		item := historyEntry{
-			Dir:       dir,
-			Trigger:   state.Trigger,
-			Verdict:   state.Verdict,
-			StartedAt: state.StartedAt,
-			EndedAt:   state.EndedAt,
-			Subject:   state.Subject,
-			MailState: state.MailStatus,
-			Detail:    state.Results,
-			LastError: state.LastError,
-		}
-		for _, result := range state.Results {
-			if result.OK() {
-				item.PassCount++
-			} else {
-				item.FailCount++
-			}
-			item.Suites = append(item.Suites, historySuite{
-				ID:           result.ID,
-				Status:       result.Status,
-				DurationText: result.DurationText,
-				Validated:    result.Validated,
-				DetailURL:    result.DetailURL,
-				Error:        result.Error,
-				Failure:      result.Failure,
-			})
-		}
-		history = append(history, item)
-	}
-	return history
+	return items
 }

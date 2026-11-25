@@ -8,9 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -64,6 +62,8 @@ type robotRunner struct {
 	location *time.Location
 	// scheduleChanged 在设置变更时唤醒调度循环重算触发时间。
 	scheduleChanged chan struct{}
+	// store 是运行记录的持久化层。为 nil 时退化为不存历史（仅测试场景）。
+	store *store
 }
 
 // newRobotRunner 构造运行器。机器人未配置时返回 nil，调用方据此决定是否挂载路由。
@@ -88,9 +88,18 @@ func newRobotRunner(config *RobotConfig) (*robotRunner, error) {
 	if config.MailBin == "" {
 		config.MailBin = "wecom-cli"
 	}
+	// 运行记录统一落在 ArtifactDir 下的 SQLite 文件里，不再按批次建目录。
+	dbPath := filepath.Join(config.ArtifactDir, "robot.db")
+	recordStore, storeErr := openStore(dbPath)
+	if storeErr != nil {
+		log.Printf("打开运行记录数据库失败（历史将不可用）: %v", storeErr)
+		recordStore = nil
+	}
+
 	return &robotRunner{
 		config:   config,
 		client:   robot.NewClient(config.CWTURL),
+		store:    recordStore,
 		location:        location,
 		scheduleChanged: make(chan struct{}, 1),
 		state:           robotState{Status: robotIdle, Message: "尚未执行过"},
@@ -231,17 +240,9 @@ func (r *robotRunner) execute(trigger string) {
 		return
 	}
 
-	// 到这里才建批次目录：前面任何一步提前返回都不该留下空目录，
+	// 到这里才生成批次号：前面任何一步提前返回都不该留下记录，
 	// 否则历史里会出现"跑过但没结果"的条目。
-	batch, err := robot.NewBatch(r.config.ArtifactDir)
-	if err != nil {
-		r.update(func(s *robotState) {
-			s.Status = robotIdle
-			s.LastError = "建立批次目录失败: " + err.Error()
-			s.Message = "执行失败"
-		})
-		return
-	}
+	batch := robot.NewBatchID()
 
 	names := make(map[string]string, len(r.config.Suites))
 	for _, suite := range r.config.Suites {
@@ -285,15 +286,11 @@ func (r *robotRunner) execute(trigger string) {
 	verdict := robot.Verdict(results)
 	subject := robot.Subject(verdict, endedAt)
 	body := robot.RenderBody(results, names, startedAt, endedAt)
-	if err := robot.WriteArtifacts(batch.Dir, subject, body, results); err != nil {
-		log.Printf("写入批次产物失败: %v", err)
-	}
 
 	mailer := robot.Mailer{Bin: r.config.MailBin, To: r.config.MailTo, DryRun: !r.config.SendMail}
-	bodyPath := filepath.Join(batch.Dir, "mail_body.md")
 	mailStatus := "已发送"
 	var mailErr string
-	if _, err := mailer.Send(context.Background(), subject, bodyPath); err != nil {
+	if _, err := mailer.SendText(context.Background(), subject, body); err != nil {
 		// 发信失败是独立结论，不能写成测试失败，也不能写成已送达。
 		mailStatus = "发送失败"
 		mailErr = err.Error()
@@ -312,11 +309,61 @@ func (r *robotRunner) execute(trigger string) {
 		s.MailStatus = mailStatus
 		s.MailError = mailErr
 		s.Results = results
-		s.Message = fmt.Sprintf("完成：%s，批次目录 %s", verdict, batch.Dir)
+		s.Message = fmt.Sprintf("完成：%s，批次 %s", verdict, batch.ID)
 	})
-	_ = os.WriteFile(filepath.Join(batch.Dir, "final-state.json"), mustJSON(final), 0o600)
-	log.Printf("机器人批次完成：%s，产物 %s", verdict, batch.Dir)
+
+	// 批次记录与运行状态都入库。批次号唯一，重复写入按覆盖处理。
+	if r.store != nil {
+		entry := historyEntry{
+			Dir:       batch.ID,
+			Trigger:   final.Trigger,
+			Verdict:   final.Verdict,
+			StartedAt: final.StartedAt,
+			EndedAt:   final.EndedAt,
+			Subject:   final.Subject,
+			MailState: final.MailStatus,
+			Detail:    final.Results,
+			LastError: final.LastError,
+		}
+		for _, result := range final.Results {
+			switch result.Status {
+			case robot.StatusPassed:
+				entry.PassCount++
+			case robot.StatusFailed:
+				entry.FailCount++
+			default:
+				entry.Incomplete++
+			}
+			entry.Suites = append(entry.Suites, historySuite{
+				ID:           result.ID,
+				Status:       result.Status,
+				DurationText: result.DurationText,
+				Validated:    result.Validated,
+				DetailURL:    result.DetailURL,
+				Error:        result.Error,
+				Failure:      result.Failure,
+			})
+		}
+		if err := r.store.saveBatch(entry); err != nil {
+			log.Printf("写入运行记录失败: %v", err)
+		}
+		if err := r.store.saveRobotState(final); err != nil {
+			log.Printf("保存机器人状态失败: %v", err)
+		}
+		// 保留策略：只留最近 historyRetention 内的批次。
+		// 原来目录方案没有清理机制，批次目录会无限增长；入库后顺手把过期记录删掉。
+		if removed, pruneErr := r.store.pruneBefore(time.Now().Add(-historyRetention)); pruneErr != nil {
+			log.Printf("清理过期运行记录失败: %v", pruneErr)
+		} else if removed > 0 {
+			log.Printf("已清理 %d 条过期运行记录（保留 %s）", removed, historyRetention)
+		}
+	}
+	log.Printf("机器人批次完成：%s，批次 %s", verdict, batch.ID)
 }
+
+// historyRetention 是运行记录的保留时长。
+// 一年按每天一次算是 365 条，占用很小；过久的记录对排查也没意义。
+const historyRetention = 365 * 24 * time.Hour
 
 // catchUpMissedRun 在启动时补跑当天漏掉的批次。
 //
@@ -375,32 +422,14 @@ func (r *robotRunner) catchUpMissedRun() {
 // restoreLastState 从最近一个批次目录恢复上次结果，让服务重启后仍能回答
 // 「昨晚跑得怎么样」。找不到就保持初始状态，不报错。
 func (r *robotRunner) restoreLastState() {
-	entries, err := os.ReadDir(r.config.ArtifactDir)
-	if err != nil {
+	if r.store == nil {
 		return
 	}
-	// 批次目录名带时间戳前缀，取字典序最大的一个即最近一次。
-	var latest string
-	for _, entry := range entries {
-		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "cwt-robot-") {
-			continue
-		}
-		if entry.Name() > latest {
-			latest = entry.Name()
-		}
-	}
-	if latest == "" {
+	state, ok := r.store.loadRobotState()
+	if !ok {
 		return
 	}
-	data, err := os.ReadFile(filepath.Join(r.config.ArtifactDir, latest, "final-state.json"))
-	if err != nil {
-		return
-	}
-	var state robotState
-	if err := json.Unmarshal(data, &state); err != nil {
-		return
-	}
-	// 老批次的 results.json 可能没有 durationText，用原始 duration 补出来。
+	// 老记录的 durationText 可能为空，用原始 duration 补出来。
 	for index := range state.Results {
 		if state.Results[index].DurationText == "" && state.Results[index].Duration != "" {
 			state.Results[index].DurationText = robot.FormatDuration(state.Results[index].Duration)
@@ -408,7 +437,7 @@ func (r *robotRunner) restoreLastState() {
 	}
 	// 恢复出来的状态一律置为 idle：进程重启过，不可能还有批次在跑。
 	state.Status = robotIdle
-	state.Message = fmt.Sprintf("上次结果：%s，批次目录 %s", state.Verdict, filepath.Join(r.config.ArtifactDir, latest))
+	state.Message = fmt.Sprintf("上次结果：%s，批次 %s", state.Verdict, state.StartedAt)
 	r.update(func(s *robotState) { *s = state })
 	log.Printf("已恢复上次巡检结果：%s", state.Verdict)
 }
