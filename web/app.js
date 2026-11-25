@@ -125,6 +125,11 @@ function currentRoute() {
   // 站点内嵌：/#/site/test 表示在看 ChainWeaver Test
   const siteMatch = /^site\/(.+)$/.exec(raw)
   if (siteMatch) return { view: 'site', site: siteMatch[1] }
+  // 没有 hash 表示刚进门户：落在第一个站点（研效数据看板），
+  // 而不是工作台——工作台现在是第三个菜单。
+  const first = sites[0]
+  if (raw === '' && first) return { view: 'site/' + first.key, site: first.key }
+  if (raw === '' || raw === 'workbench') return { view: HOME_TAB.key }
   return { view: HOME_TAB.key }
 }
 
@@ -153,18 +158,18 @@ window.addEventListener('hashchange', applyRoute)
 function renderTabs() {
   navTabs.replaceChildren()
 
-  const home = el('button', 'nav-tab')
-  home.type = 'button'
-  home.setAttribute('role', 'tab')
-  home.dataset.key = HOME_TAB.key
-  home.title = '首页'
-  home.appendChild(navIconSpan(HOME_TAB))
-  home.appendChild(el('span', 'nav-tab-label', HOME_TAB.label))
-  // 已经在首页时点首页签不跳转，只把选中态落回首页。
-  home.addEventListener('click', () => selectTab(HOME_TAB.key))
-  navTabs.appendChild(home)
+  // 工作台是站内视图，但它不排第一个：站点签在前，工作台插在第二个站点之后。
+  // 这样打开门户先落在第一个站点（研效看板），工作台作为常用入口排第三。
+  const workbench = el('button', 'nav-tab')
+  workbench.type = 'button'
+  workbench.setAttribute('role', 'tab')
+  workbench.dataset.key = HOME_TAB.key
+  workbench.title = HOME_TAB.label
+  workbench.appendChild(navIconSpan(HOME_TAB))
+  workbench.appendChild(el('span', 'nav-tab-label', HOME_TAB.label))
+  workbench.addEventListener('click', () => selectTab(HOME_TAB.key))
 
-  sites.forEach((site) => {
+  sites.forEach((site, index) => {
     // 站点改成站内内嵌：点击在内容区用 iframe 打开，顶部签栏保留。
     const tab = el('button', 'nav-tab')
     tab.type = 'button'
@@ -174,7 +179,11 @@ function renderTabs() {
     tab.appendChild(el('span', 'nav-tab-label', site.label))
     tab.addEventListener('click', () => selectTab('site/' + site.key))
     navTabs.appendChild(tab)
+    // 第二个站点之后插入工作台，让它成为第三个菜单。
+    if (index === 1) navTabs.appendChild(workbench)
   })
+  // 站点不足两个时也不能丢掉工作台。
+  if (sites.length < 2) navTabs.appendChild(workbench)
 
   // 这里只负责生成签，视图由 applyRoute 按 URL 决定，不在渲染时写路由。
 }
