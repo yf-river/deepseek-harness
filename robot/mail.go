@@ -19,28 +19,38 @@ import (
 var cst = time.FixedZone("CST", 8*3600)
 
 // Verdict 按全体流程的终态给批次定性。
-// 全部 passed → PASS；全部终态且至少一项失败 → FAILED；有流程没拿到结果 → PARTIAL。
+//
+// 三种结论必须分清，否则会误导：
+//   - PASS    全部通过
+//   - FAILED  确有主流程跑到终态并失败（CWT 侧判定为 failed）
+//   - PARTIAL 有流程没拿到结果（提交超时、执行器异常、仍在中途），这不等于测试失败
+//
+// 关键区别：StatusError 是"我们没跑成"，不是"被测系统不合格"。
+// 把它算成 FAILED 会让人以为产品有问题，实际可能是网络或调度问题。
 func Verdict(results []RunSummary) string {
 	if len(results) == 0 {
 		return "PARTIAL"
 	}
-	allDone := true
-	anyFail := false
+	anyIncomplete := false
+	anyBusinessFail := false
 	for _, item := range results {
-		if !item.Terminal() {
-			allDone = false
-		}
-		if !item.OK() {
-			anyFail = true
+		switch item.Status {
+		case StatusPassed:
+			// 通过
+		case StatusFailed:
+			anyBusinessFail = true
+		default:
+			// error / 未进入终态：执行器侧没拿到结果
+			anyIncomplete = true
 		}
 	}
 	switch {
-	case !allDone:
+	case anyIncomplete:
 		return "PARTIAL"
-	case !anyFail:
-		return "PASS"
-	default:
+	case anyBusinessFail:
 		return "FAILED"
+	default:
+		return "PASS"
 	}
 }
 
@@ -112,15 +122,32 @@ func statusLabel(status string) string {
 // RenderBody 生成邮件正文（Markdown）。不含任何凭据、Token 或完整请求响应。
 func RenderBody(results []RunSummary, names map[string]string, startedAt, endedAt time.Time) string {
 	var out bytes.Buffer
-	pass, fail := 0, 0
+	pass, failed, incomplete := 0, 0, 0
 	for _, item := range results {
-		if item.OK() {
+		switch item.Status {
+		case StatusPassed:
 			pass++
-		} else {
-			fail++
+		case StatusFailed:
+			failed++
+		default:
+			incomplete++
 		}
 	}
-	fmt.Fprintf(&out, "本次主流程巡检完成：%d 条通过，%d 条失败。\n\n", pass, fail)
+
+	// 汇总行按三类分开写：把「没跑成」和「跑了但失败」混成一个数字，
+	// 收件人会误以为被测系统出了问题。
+	fmt.Fprintf(&out, "本次主流程巡检完成：%d 条通过", pass)
+	if failed > 0 {
+		fmt.Fprintf(&out, "，%d 条失败", failed)
+	}
+	if incomplete > 0 {
+		fmt.Fprintf(&out, "，%d 条未取得结果", incomplete)
+	}
+	out.WriteString("。\n\n")
+	if incomplete > 0 {
+		out.WriteString("> 未取得结果指提交或等待环节没跑完，不代表被测功能有问题。\n\n")
+	}
+
 	fmt.Fprintf(&out, "执行时间：%s—%s（北京时间）。\n\n",
 		startedAt.In(cst).Format("2006-01-02 15:04"),
 		endedAt.In(cst).Format("2006-01-02 15:04"))
@@ -137,22 +164,40 @@ func RenderBody(results []RunSummary, names map[string]string, startedAt, endedA
 			name, statusLabel(item.Status), FormatDuration(item.Duration), item.Validated, detail)
 	}
 
-	// 失败信息逐条列出。执行器侧的 error 与 CWT 侧的 failure 分开表述，避免把
-	// 「没查到的」写成「测试失败的」。
-	var lines []string
+	// 失败与未取得结果分成两段。前者是被测系统的结论，后者是执行链路的问题，
+	// 排查方向完全不同，混在一起会浪费排查时间。
+	var failures []string
+	var incompleteLines []string
 	for _, item := range results {
 		name := displayName(item.ID, names)
-		if item.Error != "" {
-			lines = append(lines, fmt.Sprintf("- %s：%s", name, item.Error))
-			continue
-		}
-		if !item.OK() && item.Failure != "" {
-			lines = append(lines, fmt.Sprintf("- %s：%s", name, item.Failure))
+		switch item.Status {
+		case StatusFailed:
+			if item.Failure != "" {
+				failures = append(failures, fmt.Sprintf("- %s：%s", name, item.Failure))
+			} else {
+				failures = append(failures, fmt.Sprintf("- %s：未提供失败原因", name))
+			}
+		default:
+			if item.Status == StatusPassed {
+				continue
+			}
+			reason := item.Error
+			if reason == "" {
+				reason = fmt.Sprintf("未进入终态（当前状态 %s）", item.Status)
+			}
+			incompleteLines = append(incompleteLines, fmt.Sprintf("- %s：%s", name, reason))
 		}
 	}
-	if len(lines) > 0 {
+
+	if len(failures) > 0 {
 		out.WriteString("\n失败信息：\n")
-		for _, line := range lines {
+		for _, line := range failures {
+			out.WriteString("\n" + line + "\n")
+		}
+	}
+	if len(incompleteLines) > 0 {
+		out.WriteString("\n未取得结果：\n")
+		for _, line := range incompleteLines {
 			out.WriteString("\n" + line + "\n")
 		}
 	}

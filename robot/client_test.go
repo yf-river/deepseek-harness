@@ -17,7 +17,9 @@ func TestVerdict(t *testing.T) {
 	}{
 		{"全通过", []RunSummary{{Status: StatusPassed}, {Status: StatusPassed}}, "PASS"},
 		{"有失败", []RunSummary{{Status: StatusPassed}, {Status: StatusFailed}}, "FAILED"},
-		{"执行器侧失败也算失败", []RunSummary{{Status: StatusError}}, "FAILED"},
+		// 执行器侧没拿到结果不等于被测系统失败，应为 PARTIAL
+		{"执行器侧未取得结果", []RunSummary{{Status: StatusError}}, "PARTIAL"},
+		{"业务失败与未取得结果混合", []RunSummary{{Status: StatusFailed}, {Status: StatusError}}, "PARTIAL"},
 		{"有未终态", []RunSummary{{Status: StatusPassed}, {Status: StatusRunning}}, "PARTIAL"},
 		{"空批次", nil, "PARTIAL"},
 	}
@@ -69,7 +71,7 @@ func TestRenderBody(t *testing.T) {
 	body := RenderBody(results, map[string]string{"ida": "IDA", "mira": "Mira", "dpm": "DPM"}, started, ended)
 
 	for _, want := range []string{
-		"1 条通过，2 条失败",
+		"1 条通过，1 条失败，1 条未取得结果",
 		"2026-11-23 15:16—2026-11-23 15:20",
 		"| IDA | 通过 | 3分12秒 | 551 |",
 		"| Mira | 失败 | 8分24秒 | 0 |",
@@ -270,5 +272,39 @@ func TestRunTimeoutCoversObservedLongest(t *testing.T) {
 	const longestObserved = 45 * time.Minute
 	if client.RunTimeout <= longestObserved {
 		t.Fatalf("RunTimeout=%s 不足以覆盖实测最长耗时 %s", client.RunTimeout, longestObserved)
+	}
+}
+
+// 复现 11-25 早上那次：三个套件全部提交超时。
+// 这种批次必须判为 PARTIAL，邮件里也不能写成"3 条失败"，
+// 否则收件人会以为被测系统坏了，实际只是提交链路没通。
+func TestAllSubmitFailuresIsPartialNotFailed(t *testing.T) {
+	results := []RunSummary{
+		{ID: "ida", Status: StatusError, Error: `提交失败: Post "...": context deadline exceeded`},
+		{ID: "mira", Status: StatusError, Error: `提交失败: Post "...": context deadline exceeded`},
+		{ID: "dpm", Status: StatusError, Error: `提交失败: Post "...": EOF`},
+	}
+
+	if got := Verdict(results); got != "PARTIAL" {
+		t.Fatalf("全部未取得结果应为 PARTIAL，实际 %q", got)
+	}
+
+	body := RenderBody(results, map[string]string{"ida": "IDA", "mira": "Mira", "dpm": "DPM"},
+		time.Now(), time.Now())
+
+	// 不能出现"3 条失败"
+	if strings.Contains(body, "3 条失败") {
+		t.Fatalf("不应把未取得结果写成失败：\n%s", body)
+	}
+	if !strings.Contains(body, "3 条未取得结果") {
+		t.Fatalf("应写明 3 条未取得结果：\n%s", body)
+	}
+	// 要有一句说明，避免被误读成功能有问题
+	if !strings.Contains(body, "不代表被测功能有问题") {
+		t.Fatalf("缺少未取得结果的说明：\n%s", body)
+	}
+	// 失败段落不应出现
+	if strings.Contains(body, "失败信息：") {
+		t.Fatalf("没有真实失败时不应出现失败信息段落：\n%s", body)
 	}
 }
