@@ -405,21 +405,21 @@ const envEl = {
   get entry() { return document.getElementById('env-entry') },
   get entryStatus() { return document.getElementById('env-entry-status') },
   get entryMetric() { return document.getElementById('env-entry-metric') },
-  updated: document.getElementById('env-updated'),
-  host: document.getElementById('env-host'),
-  total: document.getElementById('env-total'),
-  idle: document.getElementById('env-idle'),
-  leased: document.getElementById('env-leased'),
-  unhealthy: document.getElementById('env-unhealthy'),
-  busy: document.getElementById('env-busy'),
-  list: document.getElementById('env-list'),
-  empty: document.getElementById('env-empty'),
-  error: document.getElementById('env-error'),
-  refresh: document.getElementById('env-refresh'),
-  opsList: document.getElementById('env-ops-list'),
-  opsCount: document.getElementById('env-ops-count'),
-  opsEmpty: document.getElementById('env-ops-empty'),
-  back: document.getElementById('env-back'),
+  get updated() { return document.getElementById('env-updated') },
+  get host() { return document.getElementById('env-host') },
+  get total() { return document.getElementById('env-total') },
+  get idle() { return document.getElementById('env-idle') },
+  get leased() { return document.getElementById('env-leased') },
+  get unhealthy() { return document.getElementById('env-unhealthy') },
+  get busy() { return document.getElementById('env-busy') },
+  get list() { return document.getElementById('env-list') },
+  get empty() { return document.getElementById('env-empty') },
+  get error() { return document.getElementById('env-error') },
+  get refresh() { return document.getElementById('env-refresh') },
+  get opsList() { return document.getElementById('env-ops-list') },
+  get opsCount() { return document.getElementById('env-ops-count') },
+  get opsEmpty() { return document.getElementById('env-ops-empty') },
+  get back() { return document.getElementById('env-back') },
 }
 
 // renderEnvPool 渲染环境池统计与逐环境卡片。
@@ -698,8 +698,8 @@ async function loadEnv() {
   }
 }
 
-if (envEl.entry) {
-  envEl.entry.addEventListener('click', () => selectTab('env'))
+// 卡片的点击已在 buildEnvCard 里绑定，这里只处理详情页与轮询启动。
+if (envEl.refresh) {
   envEl.refresh.addEventListener('click', loadEnv)
   bindPager('env-ops', (delta) => {
     envOpsPage = Math.max(1, envOpsPage + delta)
@@ -1137,10 +1137,6 @@ if (robotEl.save) {
     loadHistory()
   })
 
-  robotEl.entry.addEventListener('click', () => {
-    selectTab('robot')
-    loadHistory()
-  })
   robotEl.back.addEventListener('click', () => {
     history.pushState(null, '', location.pathname)
     applyRoute()
