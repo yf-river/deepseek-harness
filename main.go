@@ -54,6 +54,11 @@ type Site struct {
 	Description string   `yaml:"description" json:"description"`
 	Tags        []string `yaml:"tags" json:"tags"`
 	Icon        string   `yaml:"icon" json:"icon"`
+	// ShowInNav / ShowInGrid 控制入口出现在哪里。
+	// 两者都为 nil 时按 true 处理（默认两边都出现）；
+	// 显式置 false 可让站点只出现在一处。指针用于区分"没写"和"写了 false"。
+	ShowInNav  *bool `yaml:"show_in_nav" json:"showInNav"`
+	ShowInGrid *bool `yaml:"show_in_grid" json:"showInGrid"`
 }
 
 // RobotConfig 是每日巡检机器人的设置。它由门户自己调度，不是被接入的子站点。

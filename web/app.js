@@ -62,6 +62,11 @@ let sites = []
 // 站内视图：首页与机器人详情。机器人不在顶部签里，从首页卡片进入。
 // 门户的起始页。它不再是顶部的「首页」签，而是排在最前的「研发工作台」。
 const HOME_TAB = { key: '__home__', label: '研发工作台', icon: 'home' }
+
+// 入口出现在哪里由配置决定；没写就当两边都显示。
+// 顶部菜单和卡片是两种入口，同一个站点通常只在一处出现，避免重复。
+const showInNav = (site) => site.showInNav !== false
+const showInGrid = (site) => site.showInGrid !== false
 const ROBOT_VIEW = 'view-robot'
 const VIEWS = { [HOME_TAB.key]: 'view-home', env: 'view-env', robot: ROBOT_VIEW, site: 'view-site' }
 
@@ -169,7 +174,8 @@ function renderTabs() {
   workbench.appendChild(el('span', 'nav-tab-label', HOME_TAB.label))
   workbench.addEventListener('click', () => selectTab(HOME_TAB.key))
 
-  sites.forEach((site, index) => {
+  const navSites = sites.filter(showInNav)
+  navSites.forEach((site, index) => {
     // 站点改成站内内嵌：点击在内容区用 iframe 打开，顶部签栏保留。
     const tab = el('button', 'nav-tab')
     tab.type = 'button'
@@ -183,7 +189,7 @@ function renderTabs() {
     if (index === 1) navTabs.appendChild(workbench)
   })
   // 站点不足两个时也不能丢掉工作台。
-  if (sites.length < 2) navTabs.appendChild(workbench)
+  if (navSites.length < 2) navTabs.appendChild(workbench)
 
   // 这里只负责生成签，视图由 applyRoute 按 URL 决定，不在渲染时写路由。
 }
@@ -226,7 +232,8 @@ function statusBadge(health) {
 
 function renderCards(healthByKey) {
   siteGrid.replaceChildren()
-  sites.forEach((site) => {
+  // 只给 showInGrid 的站点出卡片：顶部菜单已有的站点不在工作台里重复。
+  sites.filter(showInGrid).forEach((site) => {
     const card = el('button', 'site-card')
     card.type = 'button'
     card.dataset.key = site.key
