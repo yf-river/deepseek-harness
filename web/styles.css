@@ -1239,7 +1239,10 @@ a.site-card {
     linear-gradient(90deg, rgba(30, 58, 102, .022) 1px, transparent 1px);
   background-size: auto, auto, 40px 40px, 40px 40px;
   background-attachment: fixed, fixed, scroll, scroll;
-  margin: -24px -32px -40px;
+  /* 只抵掉纵向：横向不做负 margin，否则标题会贴到屏幕边缘。
+     父容器 .app-main 的左右 32px 内边距正好给内容留出呼吸。 */
+  margin-top: -24px;
+  margin-bottom: -40px;
 }
 
 .wb-group { margin-bottom: 26px; }
@@ -1333,6 +1336,6 @@ a.site-card {
 .wb-go { color: var(--blue); font-weight: 500; white-space: nowrap; }
 
 @media (max-width: 980px) {
-  .app-main#view-home { padding: 20px 16px 32px; margin: -20px -20px -32px; }
+  .app-main#view-home { padding: 20px 16px 32px; margin-top: -20px; margin-bottom: -32px; }
   .wb-cards { grid-template-columns: 1fr; }
 }
