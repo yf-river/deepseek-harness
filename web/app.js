@@ -60,7 +60,8 @@ const loading = document.getElementById('loading')
 
 let sites = []
 // 站内视图：首页与机器人详情。机器人不在顶部签里，从首页卡片进入。
-const HOME_TAB = { key: '__home__', label: '首页', icon: 'home' }
+// 门户的起始页。它不再是顶部的「首页」签，而是排在最前的「研发工作台」。
+const HOME_TAB = { key: '__home__', label: '研发工作台', icon: 'home' }
 const ROBOT_VIEW = 'view-robot'
 const VIEWS = { [HOME_TAB.key]: 'view-home', env: 'view-env', robot: ROBOT_VIEW, site: 'view-site' }
 
