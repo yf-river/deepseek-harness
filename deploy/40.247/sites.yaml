@@ -11,8 +11,8 @@ sites:
     label: 研效数据看板
     title: 研效数据看板
     subtitle: 研发效能度量
-    url: http://192.168.40.247:18095/
-    health_url: http://192.168.40.247:18095/
+    url: http://9.134.129.162:18093/api/rd-dashboard/pages/efficiency?tab=iteration&group=all
+    health_url: http://9.134.129.162:18093/api/rd-dashboard/pages/efficiency
     description: 查看需求交付、代码与迭代的效能指标。
     tags: [效能指标, 需求交付]
     icon: dashboard
@@ -21,8 +21,8 @@ sites:
     label: 质量数据看板
     title: 质量数据看板
     subtitle: 质量度量与缺陷
-    url: http://192.168.40.247:18096/
-    health_url: http://192.168.40.247:18096/
+    url: http://9.134.129.162:18093/api/rd-dashboard/pages/quality?tab=iteration&group=all
+    health_url: http://9.134.129.162:18093/api/rd-dashboard/pages/quality
     description: 查看缺陷分布、测试覆盖与质量趋势。
     tags: [缺陷, 质量趋势]
     icon: dashboard
