@@ -47,12 +47,14 @@ echo "==> 3/5 远端拉代码"
 ssh -o BatchMode=yes "$TARGET_HOST" "
   set -euo pipefail
   if [ ! -d $TARGET_DIR/.git ]; then
-    git clone --branch $BRANCH $REMOTE_GIT $TARGET_DIR
+    # 只取最新一次提交：这个仓库 fork 自 DSH，完整历史有 380MB+，全量克隆会超时。
+    git clone --depth 1 --single-branch --branch $BRANCH $REMOTE_GIT $TARGET_DIR
   fi
   cd $TARGET_DIR
-  git fetch --prune origin
-  git checkout $BRANCH
-  git reset --hard origin/$BRANCH
+  # 浅仓库用 fetch + reset 同步到最新，避免依赖完整历史。
+  git fetch --depth 1 origin $BRANCH
+  git checkout -q $BRANCH 2>/dev/null || git checkout -q -b $BRANCH FETCH_HEAD
+  git reset --hard FETCH_HEAD
   echo -n '    远端 HEAD: '; git rev-parse HEAD
 "
 
