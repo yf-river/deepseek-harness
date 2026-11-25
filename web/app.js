@@ -699,17 +699,21 @@ async function loadEnv() {
 }
 
 // 卡片的点击已在 buildEnvCard 里绑定，这里只处理详情页与轮询启动。
-if (envEl.refresh) {
-  envEl.refresh.addEventListener('click', loadEnv)
-  bindPager('env-ops', (delta) => {
-    envOpsPage = Math.max(1, envOpsPage + delta)
-    loadEnv()
-  })
+// 详情页的控件按需绑定（工作台视图里这些元素不存在）。
+if (envEl.refresh) envEl.refresh.addEventListener('click', loadEnv)
+if (envEl.back) {
   envEl.back.addEventListener('click', () => {
     history.pushState(null, '', location.pathname)
     applyRoute()
   })
-  // 首页卡片要显示池子占用，启动时就拉一次，之后按 60 秒轮询。
+}
+bindPager('env-ops', (delta) => {
+  envOpsPage = Math.max(1, envOpsPage + delta)
+  loadEnv()
+})
+// 工作台的环境卡片要显示池子占用，启动时就拉一次，之后按 60 秒轮询。
+// 这段不能挂在详情页元素存在与否上，否则工作台里会一直显示「-」。
+{
   loadEnv()
   startEnvPoll()
   startRelativeClock()
