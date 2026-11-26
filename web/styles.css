@@ -1793,8 +1793,8 @@ html { background: #e6eef9; }
   border-bottom-color: #fff;
 }
 
-/* 收件人胶囊 */
-.mail-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+/* 收件人：胶囊与输入框并排同一行 */
+.mail-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
 .mail-chip {
   display: inline-flex;
   align-items: center;
@@ -1806,8 +1806,8 @@ html { background: #e6eef9; }
   border-radius: 999px;
 }
 #robot-mailto {
-  flex: 1;
-  min-width: 180px;
+  flex: 1 1 0;
+  min-width: 0;
   padding: 7px 11px;
   font: inherit;
   font-size: var(--fs-xs);
