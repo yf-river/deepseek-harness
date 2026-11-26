@@ -27,6 +27,13 @@ const ICONS = {
     <rect x="8" y="6" width="4" height="12" rx="1" fill="currentColor" opacity=".75"/>
     <rect x="14" y="2" width="4" height="16" rx="1" fill="currentColor"/>
   </svg>`,
+  // 工作台图标：一块仪表盘 + 下方承托，表达「多个入口聚合在这里」。
+  // 原来的房子（home）容易和「首页」混淆，且工作台并不是首页。
+  workbench: `<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="2.8" y="3" width="14.4" height="10.4" rx="2" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M6.4 8.2v2M10 6.4v3.8M13.6 9.2v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M3.4 16.4h13.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`,
   tools: `<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <rect x="2.6" y="3.4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
     <rect x="11.4" y="3.4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
@@ -66,7 +73,7 @@ const loading = document.getElementById('loading')
 let sites = []
 // 站内视图：首页与机器人详情。机器人不在顶部签里，从首页卡片进入。
 // 门户的起始页。它不再是顶部的「首页」签，而是排在最前的「研发工作台」。
-const HOME_TAB = { key: '__home__', label: '研发工作台', icon: 'home' }
+const HOME_TAB = { key: '__home__', label: '研发工作台', icon: 'workbench' }
 
 // 入口出现在哪里由配置决定；没写就当两边都显示。
 // 顶部菜单和卡片是两种入口，同一个站点通常只在一处出现，避免重复。
@@ -130,24 +137,26 @@ function selectTab(key) {
 // 视图状态放在 hash 里：刷新、收藏、前进后退都停在同一个页面。
 function currentRoute() {
   const raw = location.hash.replace(/^#\/?/, '')
-  if (raw === 'env') return { view: 'env', env: true }
-  if (raw === 'robot') return { view: 'robot', robot: true }
+  if (raw === 'env') return { view: 'env', key: 'env', env: true }
+  if (raw === 'robot') return { view: 'robot', key: 'robot', robot: true }
   // 站点内嵌：/#/site/test 表示在看 ChainWeaver Test
   const siteMatch = /^site\/(.+)$/.exec(raw)
-  if (siteMatch) return { view: 'site', site: siteMatch[1] }
+  // key 是「签的标识」（site/quality），view 是视图名（site）：
+  // 前者用于点亮顶部签，后者用于切换内容区，两者不能混用。
+  if (siteMatch) return { view: 'site', key: 'site/' + siteMatch[1], site: siteMatch[1] }
   // 没有 hash 表示刚进门户：落在第一个站点（研效数据看板），
   // 而不是工作台——工作台现在是第三个菜单。
   const first = sites[0]
-  if (raw === '' && first) return { view: 'site/' + first.key, site: first.key }
-  if (raw === '' || raw === 'workbench') return { view: HOME_TAB.key }
-  return { view: HOME_TAB.key }
+  if (raw === '' && first) return { view: 'site', key: 'site/' + first.key, site: first.key }
+  if (raw === '' || raw === 'workbench') return { view: HOME_TAB.key, key: HOME_TAB.key }
+  return { view: HOME_TAB.key, key: HOME_TAB.key }
 }
 
 // applyRoute 按当前 URL 同步选中态与视图，不写回 hash（避免循环）。
 function applyRoute() {
   const route = currentRoute()
   navTabs.querySelectorAll('.nav-tab').forEach((node) => {
-    const active = node.dataset.key === route.view
+    const active = node.dataset.key === route.key
     node.classList.toggle('active', active)
     node.setAttribute('aria-selected', active ? 'true' : 'false')
   })
