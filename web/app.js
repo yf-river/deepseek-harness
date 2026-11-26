@@ -125,11 +125,10 @@ function selectTab(key) {
   if (viewKey === 'site') showSite(key.slice('site/'.length))
 
   // 把当前视图写进 hash：刷新停在同一页，前进/后退也能回到对应视图。
-  const hash = key === HOME_TAB.key ? '' : '#/' + key
-  const target = hash || location.pathname
-  if (location.hash !== hash && location.pathname + location.hash !== target) {
-    history.pushState(null, '', target)
-  }
+  // 工作台也要写 #/workbench——之前写成空 hash，刷新后会被当成
+  // 「刚从外部进来」，从而跳到第一个站点，回不到工作台。
+  const hash = key === HOME_TAB.key ? '#/workbench' : '#/' + key
+  if (location.hash !== hash) history.pushState(null, '', hash)
 }
 
 
