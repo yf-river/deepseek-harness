@@ -389,12 +389,14 @@ async function loadHealth() {
     ;(payload.sites || []).forEach((item) => {
       healthByKey[item.key] = item
     })
-    // 底部概览：可用站点数（只统计工作台里出现的站点）
+    // 底部概览：可访问的站点数。
+    // 只算真正的外部站点（工作台里过滤出 showInGrid 的那些），
+    // 站内页面（Env、巡检）不参与这个口径，否则分母会混进不是"站点"的东西。
     const gridSites = sites.filter(showInGrid)
     const ok = gridSites.filter((one) => (healthByKey[one.key] || {}).reachable).length
     ovSites = { ok, total: gridSites.length }
     ovSet('ov-sites', `${ok}<small>/ ${gridSites.length}</small>`,
-      ok === gridSites.length ? '全部可访问' : `${gridSites.length - ok} 个由浏览器直连`)
+      ok === gridSites.length ? '全部可访问' : `${gridSites.length - ok} 个需浏览器直连`)
     renderHeadSummary()
     renderCards(healthByKey)
   } catch (error) {

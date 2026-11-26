@@ -1242,13 +1242,16 @@ html { background: #e6eef9; }
   min-height: calc(100vh - 65px);
 }
 
-/* 内容列：整页共用同一条左右边线 */
-.app-main#view-home > * {
+/* 内容列：限宽作用在页头/分组/概览这一层，
+   不能写成 > *，否则 .wb-cards 这种 grid 容器也被限宽，三列会塌成两列。 */
+.app-main#view-home { padding: 26px 32px 56px; }
+.wb-head,
+.wb-group,
+#loading {
   max-width: 1180px;
   margin-left: auto;
   margin-right: auto;
 }
-.app-main#view-home { padding: 26px 32px 56px; }
 
 /* 页头：标题 + 一句话状态，右侧更新时间 */
 .wb-head {
