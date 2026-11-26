@@ -405,15 +405,6 @@ async function loadHealth() {
     ;(payload.sites || []).forEach((item) => {
       healthByKey[item.key] = item
     })
-    // 底部概览：可访问的站点数。
-    // 只算真正的外部站点（工作台里过滤出 showInGrid 的那些），
-    // 站内页面（Env、巡检）不参与这个口径，否则分母会混进不是"站点"的东西。
-    const gridSites = sites.filter(showInGrid)
-    const ok = gridSites.filter((one) => (healthByKey[one.key] || {}).reachable).length
-    ovSites = { ok, total: gridSites.length }
-    ovSet('ov-sites', `${ok}<small>/ ${gridSites.length}</small>`,
-      ok === gridSites.length ? '全部可访问' : `${gridSites.length - ok} 个需浏览器直连`)
-    renderHeadSummary()
     renderCards(healthByKey)
   } catch (error) {
     const down = {}
@@ -460,30 +451,6 @@ const envEl = {
 }
 
 // renderEnvPool 渲染环境池统计与逐环境卡片。
-// ── 工作台底部概览 ──
-// 三格数据来自不同接口，各自更新自己那一格，避免互相覆盖。
-const ovSet = (id, value, note) => {
-  const v = document.getElementById(id)
-  const n = document.getElementById(id + '-note')
-  if (v) v.innerHTML = value
-  if (n && note !== undefined) n.textContent = note
-}
-
-let ovEnv = null
-let ovSites = null
-let ovRobot = null
-
-// 页头那句话把三格的关键值串起来，让用户不进卡片就知道整体状态。
-function renderHeadSummary() {
-  const el = document.getElementById('wb-summary')
-  if (!el) return
-  const parts = []
-  if (ovEnv) parts.push(`环境池 <b>${ovEnv.idle || 0} 个空闲</b>`)
-  if (ovRobot && ovRobot.next) parts.push(`下次巡检 <b>${ovRobot.next}</b>`)
-  if (ovSites) parts.push(`<b>${ovSites.ok} 个站点</b>可直接进入`)
-  el.innerHTML = parts.length ? parts.join('，') + '。' : '正在读取状态…'
-}
-
 function renderEnvPool(pool) {
   if (pool.error) {
     envEl.error.hidden = false
@@ -583,13 +550,6 @@ function renderEnvPool(pool) {
   if (envEl.entryMetric) {
     envEl.entryMetric.textContent = `总计 ${pool.total || 0} · 空闲 ${pool.idle || 0} · 已租用 ${pool.leased || 0}`
   }
-  // 底部概览：空闲 / 已租用
-  ovEnv = pool
-  ovSet('ov-idle', `${pool.idle || 0}<small>/ ${pool.total || 0}</small>`,
-    pool.unhealthy > 0 ? `${pool.unhealthy} 个异常` : '全部可用')
-  ovSet('ov-leased', `${pool.leased || 0}<small>个</small>`,
-    pool.leased > 0 ? '有环境被占用' : '无占用')
-  renderHeadSummary()
   // 宿主机只有一个，写在页面顶部；各环境行不再重复。
   if (envEl.host) {
     const first = (pool.environments || []).find((one) => one.uiUrl)
@@ -1133,17 +1093,6 @@ function renderRobotEntry(payload) {
     const when = settings.enabled ? `每天 ${settings.schedule || '—'}` : '定时未启用'
     sub.textContent = suites ? `${suites} · ${when}` : '每天定时执行'
   }
-  // 底部概览：下次巡检
-  if (payload.nextRunAt) {
-    const when = beijingTime(payload.nextRunAt)
-    ovRobot = { next: when }
-    ovSet('ov-next', when, settings.enabled ? '定时已启用' : '定时未启用')
-  } else {
-    ovRobot = { next: null }
-    ovSet('ov-next', '—', settings.enabled ? '待排期' : '定时未启用')
-  }
-  renderHeadSummary()
-
   const metric = robotEl.entryMetric
   if (metric) {
     if (running) metric.textContent = '正在执行'
