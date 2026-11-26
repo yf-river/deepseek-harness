@@ -137,13 +137,21 @@ function selectTab(key) {
 // 视图状态放在 hash 里：刷新、收藏、前进后退都停在同一个页面。
 function currentRoute() {
   const raw = location.hash.replace(/^#\/?/, '')
-  if (raw === 'env') return { view: 'env', key: 'env', env: true }
-  if (raw === 'robot') return { view: 'robot', key: 'robot', robot: true }
+  // 环境详情与机器人都是从工作台点进去的下级页，让工作台保持选中。
+  if (raw === 'env') return { view: 'env', key: HOME_TAB.key, env: true }
+  if (raw === 'robot') return { view: 'robot', key: HOME_TAB.key, robot: true }
   // 站点内嵌：/#/site/test 表示在看 ChainWeaver Test
   const siteMatch = /^site\/(.+)$/.exec(raw)
   // key 是「签的标识」（site/quality），view 是视图名（site）：
   // 前者用于点亮顶部签，后者用于切换内容区，两者不能混用。
-  if (siteMatch) return { view: 'site', key: 'site/' + siteMatch[1], site: siteMatch[1] }
+  if (siteMatch) {
+    const key = siteMatch[1]
+    // 没有独立签的站点（Test / Flow）是工作台的下级页，
+    // 让工作台保持选中，否则顶部一个签都不亮，看不出自己在哪。
+    const site = sites.find((one) => one.key === key)
+    const navKey = site && showInNav(site) ? 'site/' + key : HOME_TAB.key
+    return { view: 'site', key: navKey, site: key }
+  }
   // 没有 hash 表示刚进门户：落在第一个站点（研效数据看板），
   // 而不是工作台——工作台现在是第三个菜单。
   const first = sites[0]
