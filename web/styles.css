@@ -1253,14 +1253,8 @@ html { background: #e6eef9; }
   margin-right: auto;
 }
 
-/* 页头：标题 + 一句话状态，右侧更新时间 */
-.wb-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 22px;
-}
+/* 页头：现在只有标题 */
+.wb-head { margin-bottom: 20px; }
 .wb-head h1 {
   margin: 0;
   font-size: 22px;
@@ -1268,13 +1262,6 @@ html { background: #e6eef9; }
   color: var(--ink);
   letter-spacing: -.5px;
 }
-.wb-head p {
-  margin: 7px 0 0;
-  font-size: var(--fs-sm);
-  color: var(--muted);
-}
-.wb-head p b { color: var(--ink); font-weight: 600; }
-.wb-sync { color: var(--muted-2); font-size: var(--fs-xs); white-space: nowrap; }
 
 .wb-group { margin-bottom: 24px; }
 .wb-group:last-of-type { margin-bottom: 0; }
