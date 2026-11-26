@@ -58,7 +58,7 @@ const siteEl = {
 
 if (siteEl.back) {
   siteEl.back.addEventListener('click', () => {
-    history.pushState(null, '', location.pathname)
+    history.pushState(null, '', '#/workbench')
     applyRoute()
   })
 }
@@ -66,6 +66,8 @@ if (siteEl.back) {
 // 那时用它回填状态条，不必再打一次请求。
 let lastEnvPool = null
 let lastRobotPayload = null
+// 表单是否已回填过。首次必须填，之后执行中不再覆盖用户输入。
+let robotFormFilled = false
 
 const siteGrid = document.getElementById('site-grid')
 const loading = document.getElementById('loading')
@@ -732,7 +734,7 @@ async function loadEnv() {
 if (envEl.refresh) envEl.refresh.addEventListener('click', loadEnv)
 if (envEl.back) {
   envEl.back.addEventListener('click', () => {
-    history.pushState(null, '', location.pathname)
+    history.pushState(null, '', '#/workbench')
     applyRoute()
   })
 }
@@ -826,8 +828,10 @@ function renderRobotState(payload) {
     robotEl.summary.textContent = '每天把所有主流程依次跑一遍，结果发到指定邮箱。'
   }
 
-  // 设置只在非执行中回填，避免轮询覆盖用户正在改的内容。
-  if (!running && payload.availableSuites) {
+  // 首次加载无条件回填：此时用户还没开始编辑，不填就是一片空白。
+  // 之后执行中的轮询才跳过，避免覆盖用户正在改的内容。
+  if ((!robotFormFilled || !running) && payload.availableSuites) {
+    robotFormFilled = true
     suiteCheckboxes(payload.availableSuites, settings.suites || [])
     setScheduleInput(settings.schedule || '')
     mailRecipients = (settings.mailTo || []).slice()
@@ -1179,7 +1183,7 @@ if (robotEl.save) {
   })
 
   robotEl.back.addEventListener('click', () => {
-    history.pushState(null, '', location.pathname)
+    history.pushState(null, '', '#/workbench')
     applyRoute()
   })
 
