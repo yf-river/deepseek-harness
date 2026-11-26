@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="dsh-design" content="web 1920x1180">
+<title>工作台 v2 · 收拢宽度</title>
+<style>
+/* 修正版：核心是「别让内容横跨整个屏幕」。
+   上一版卡片宽 920px、一行文字 878px，中文早就超出舒适阅读宽度，
+   所以看起来又空又散。这版把内容列收进 1180px 并居中，
+   卡片改成三列，一屏能看到更多，也不会撑得那么宽。 */
+:root {
+  --ink: #10151c;
+  --body: #35404e;
+  --muted: #5a6878;
+  --muted-2: #66758a;
+  --line: #d5dee8;
+  --primary: #1f5fd6;
+  --blue: #2563b8;
+  --ok: #0a6b4a;
+  --bad: #b02f28;
+  --sans: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html { background: #e6eef9; }
+body {
+  margin: 0; min-height: 100vh;
+  color: var(--ink); font-family: var(--sans); font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  background-color: #e6eef9;
+  background-image:
+    radial-gradient(1100px 620px at 12% -6%, #cfe2ff 0, transparent 58%),
+    radial-gradient(900px 560px at 95% 10%, #c2e9f2 0, transparent 56%),
+    radial-gradient(1000px 600px at 50% 108%, #d8e4fb 0, transparent 54%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* 顶栏 */
+.top {
+  display: flex; align-items: center; gap: 34px;
+  height: 64px; padding: 0 32px;
+  background: rgba(255, 255, 255, .72);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid rgba(255, 255, 255, .8);
+  position: sticky; top: 0; z-index: 20;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 600; letter-spacing: -.4px; }
+.mark {
+  width: 28px; height: 28px; border-radius: 9px;
+  background: linear-gradient(140deg, #4a8bf5, #1f5fd6);
+  display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700;
+  box-shadow: 0 4px 12px rgba(31, 95, 214, .3);
+}
+.tabs { display: flex; gap: 4px; }
+.tabs a {
+  padding: 7px 14px; border-radius: 999px;
+  color: var(--muted); text-decoration: none; font-size: 13px;
+}
+.tabs a.on {
+  background: #fff; color: var(--ink); font-weight: 500;
+  box-shadow: 0 2px 8px rgba(23, 58, 122, .1);
+}
+.top-right {
+  margin-left: auto; display: flex; align-items: center; gap: 16px;
+  font-size: 12px; color: var(--muted);
+}
+.pulse { display: inline-flex; align-items: center; gap: 6px; }
+.pulse::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ok); box-shadow: 0 0 0 3px rgba(10, 107, 74, .16);
+}
+
+/* 内容列：关键改动——限宽 1180 并居中 */
+.wrap { max-width: 1180px; margin: 0 auto; padding: 26px 32px 56px; }
+
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+.head h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.5px; }
+.head p { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+.head p b { color: var(--ink); font-weight: 600; }
+.head .sync { color: var(--muted-2); font-size: 12px; white-space: nowrap; }
+
+/* 分组标题 */
+.grp { display: flex; align-items: center; gap: 12px; margin: 24px 0 10px; }
+.grp:first-of-type { margin-top: 0; }
+.grp h2 {
+  margin: 0; font-size: 12px; font-weight: 500;
+  color: var(--muted-2); letter-spacing: 1.3px;
+}
+.grp i { flex: 1; height: 1px; background: rgba(31, 95, 214, .14); }
+
+/* 三列：单卡宽度降到 372，一行文字控制在 330 左右，中文读起来才顺 */
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+
+.c {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 20px 20px 18px;
+  border-radius: 14px;
+  min-height: 196px;
+  background: rgba(255, 255, 255, .66);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 6px 20px rgba(23, 58, 122, .1);
+  cursor: pointer;
+  transition: transform .16s, box-shadow .16s, background .16s;
+}
+.c:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 12px 30px rgba(23, 58, 122, .16);
+}
+.c-top { display: flex; align-items: center; gap: 10px; }
+.c-ico {
+  width: 34px; height: 34px; flex-shrink: 0;
+  display: grid; place-items: center; border-radius: 10px;
+  background: #fff; color: var(--blue);
+  box-shadow: 0 2px 6px rgba(23, 58, 122, .09);
+}
+.c-ico svg { width: 17px; height: 17px; }
+.c-t { flex: 1; min-width: 0; }
+.c-t h3 { margin: 0; font-size: 14.5px; font-weight: 600; }
+.c-t span { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.c-d {
+  margin: 0; font-size: 13px; color: var(--muted-2);
+  line-height: 1.75;
+  flex: 1;
+}
+.c-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-top: auto; padding-top: 11px;
+  border-top: 1px solid rgba(31, 95, 214, .1);
+  font-size: 12px; color: var(--muted-2);
+}
+.c-metric { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-go {
+  flex-shrink: 0; padding: 5px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+  background: var(--primary); color: #fff;
+  box-shadow: 0 3px 9px rgba(31, 95, 214, .26);
+}
+.c-go.soft { background: rgba(31, 95, 214, .1); color: var(--primary); box-shadow: none; }
+
+.st {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: 12px; white-space: nowrap;
+}
+.st::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.st.ok { color: var(--ok); background: rgba(10, 107, 74, .1); }
+.st.bad { color: var(--bad); background: rgba(176, 47, 40, .1); }
+.st.idle { color: #55606e; background: rgba(31, 95, 214, .08); }
+
+/* 底部概览：把剩余纵向空间用起来，也让读数有个固定归处 */
+.overview {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.ov {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .66);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 6px 20px rgba(23, 58, 122, .1);
+}
+.ov-k { font-size: 12px; color: var(--muted-2); }
+.ov-v { font-size: 24px; font-weight: 600; letter-spacing: -.8px; color: var(--ink); }
+.ov-v small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 4px; letter-spacing: 0; }
+.ov-n { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand"><span class="mark">C</span>ChainWeaver</div>
+  <div class="tabs">
+    <a href="#">研效数据看板</a>
+    <a href="#">质量数据看板</a>
+    <a href="#" class="on">研发工作台</a>
+  </div>
+  <div class="top-right">
+    <span class="pulse">环境池已同步</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>研发工作台</h1>
+      <p>环境池 <b>4 个空闲</b>，下次巡检 <b>明天 08:00</b>，<b>2 个站点</b>可直接进入。</p>
+    </div>
+    <span class="sync">更新于刚刚</span>
+  </div>
+
+  <div class="grp"><h2>开发</h2><i></i></div>
+  <div class="cards">
+    <article class="c">
+      <div class="c-top">
+        <span class="c-ico"><svg viewBox="0 0 20 20" fill="none"><rect x="2" y="10" width="4" height="8" rx="1" fill="currentColor" opacity=".5"/><rect x="8" y="6" width="4" height="12" rx="1" fill="currentColor" opacity=".75"/><rect x="14" y="2" width="4" height="16" rx="1" fill="currentColor"/></svg></span>
+        <div class="c-t"><h3>研效数据看板</h3><span>研发效能度量</span></div>
+      </div>
+      <p class="c-d">需求交付、迭代效率与人员产出的度量视图。</p>
+      <div class="c-bar"><span class="c-metric">迭代视角 · 全部团队</span><span class="c-go soft">进入 →</span></div>
+    </article>
+
+    <article class="c">
+      <div class="c-top">
+        <span class="c-ico"><svg viewBox="0 0 20 20" fill="none"><circle cx="5" cy="10" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="5" r="2.4" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2.4" stroke="currentColor" stroke-width="1.5"/><path d="M7.2 9l5.6-3M7.2 11l5.6 3" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <div class="c-t"><h3>ChainWeaver Flow</h3><span>多组件协同开发</span></div>
+      </div>
+      <p class="c-d">从 TAPD 导入需求，按工作区编排方案、实现、评审到交付的跨仓流程。</p>
+      <div class="c-bar"><span class="c-metric">响应 1ms</span><span class="c-go">进入 →</span></div>
+    </article>
+
+    <article class="c">
+      <div class="c-top">
+        <span class="c-ico"><svg viewBox="0 0 20 20" fill="none"><rect x="2.5" y="3.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="11.5" width="15" height="5" rx="1.6" stroke="currentColor" stroke-width="1.5"/><circle cx="5.6" cy="6" r="1" fill="currentColor"/><circle cx="5.6" cy="14" r="1" fill="currentColor"/></svg></span>
+        <div class="c-t"><h3>ChainWeaver Env</h3><span>环境编排与租约</span></div>
+      </div>
+      <p class="c-d">查看环境池占用、健康状态与租约情况。</p>
+      <div class="c-bar"><span class="c-metric">总计 4 · 空闲 4</span><span class="c-go soft">查看 →</span></div>
+    </article>
+  </div>
+
+  <div class="grp"><h2>测试</h2><i></i></div>
+  <div class="cards">
+    <article class="c">
+      <div class="c-top">
+        <span class="c-ico"><svg viewBox="0 0 20 20" fill="none"><path d="M8 3.5h6.5a2 2 0 0 1 2 2V9M8 3.5v10a2 2 0 0 0 2 2h6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <div class="c-t"><h3>ChainWeaver Test</h3><span>跨组件集成测试</span></div>
+      </div>
+      <p class="c-d">选择主流程与基线分支执行集成测试，查看运行编号、阶段耗时与结果明细。</p>
+      <div class="c-bar"><span class="c-metric">最近 10 次运行</span><span class="c-go">进入 →</span></div>
+    </article>
+
+    <article class="c">
+      <div class="c-top">
+        <span class="c-ico"><svg viewBox="0 0 20 20" fill="none"><rect x="3.5" y="6.5" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7.6" cy="10.8" r="1.15" fill="currentColor"/><circle cx="12.4" cy="10.8" r="1.15" fill="currentColor"/></svg></span>
+        <div class="c-t"><h3>E2E 每日巡检</h3><span>IDA · MIRA · DPM</span></div>
+      </div>
+      <p class="c-d">每天把所有主流程依次跑一遍，结果发到指定邮箱。</p>
+      <div class="c-bar"><span class="c-metric">下次 明天 08:00</span><span class="c-go soft">查看 →</span></div>
+    </article>
+  </div>
+
+  <div class="grp"><h2>概览</h2><i></i></div>
+  <div class="overview">
+    <div class="ov">
+      <span class="ov-k">环境池空闲</span>
+      <span class="ov-v">4<small>/ 4</small></span>
+      <span class="ov-n">全部可用</span>
+    </div>
+    <div class="ov">
+      <span class="ov-k">已租用</span>
+      <span class="ov-v">0<small>个</small></span>
+      <span class="ov-n">无占用</span>
+    </div>
+    <div class="ov">
+      <span class="ov-k">可用站点</span>
+      <span class="ov-v">2<small>/ 4</small></span>
+      <span class="ov-n">2 个浏览器直连</span>
+    </div>
+    <div class="ov">
+      <span class="ov-k">下次巡检</span>
+      <span class="ov-v">08:00</span>
+      <span class="ov-n">明天</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
