@@ -1793,8 +1793,16 @@ html { background: #e6eef9; }
   border-bottom-color: #fff;
 }
 
-/* 收件人：胶囊与输入框并排同一行 */
-.mail-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
+/* 收件人：胶囊与输入框并排同一行。
+   .mail-chips 作为 flex 子项默认会被拉伸到整行，导致输入框被挤到下一行，
+   所以显式按内容宽度并禁止收缩。 */
+.mail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: fit-content;
+  flex: 0 0 auto;
+}
 .mail-chip {
   display: inline-flex;
   align-items: center;
