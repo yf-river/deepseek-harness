@@ -16,8 +16,8 @@ sites:
     description: 查看需求交付、代码与迭代的效能指标。
     tags: [效能指标, 需求交付]
     icon: dashboard
-    group: dev
-    metric: 迭代视角 · 全部团队
+    # 顶部菜单已有入口，工作台里不再重复展示
+    show_in_grid: false
 
   - key: quality
     label: 质量数据看板
