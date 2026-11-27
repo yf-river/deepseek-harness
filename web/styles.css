@@ -1806,7 +1806,9 @@ html { background: #e6eef9; }
   /* 五格高：够看出上下还有更多档，又不至于把面板拉太长 */
   max-height: 150px;
   overflow-y: auto;
-  padding-bottom: 8px;
+  /* 上下各留半屏空档，首尾两项也能滚到中间；
+     不留的话第一项永远贴顶（scrollTop 不能为负）。 */
+  padding-block: 58px;
   scrollbar-width: thin;
 }
 .time-col-list::-webkit-scrollbar { width: 5px; }
