@@ -902,29 +902,29 @@ function wheelItems(wheel) {
   return Number(wheel.dataset.max) + 1
 }
 
-// 把滚轮滚到某个值：用 scrollTop 定位，不用切换选中 class，
-// 这样滚动过程中高亮自然跟着中心那一格走。
+// 首尾各留 PAD 格空白，所以「第几个格子」和「值是几」差一个 PAD 偏移。
+// 之前漏了这个偏移，导致显示 06 而实际值是 8。
 function setWheel(wheel, value) {
   const max = Number(wheel.dataset.max)
   const next = Math.max(0, Math.min(Number(value) || 0, max))
   wheel.dataset.value = String(next)
-  wheel.scrollTop = next * WHEEL_ITEM_H
+  wheel.scrollTop = (next + WHEEL_PAD) * WHEEL_ITEM_H
   markWheelActive(wheel)
 }
 
 function wheelValue(wheel) {
-  const idx = Math.round(wheel.scrollTop / WHEEL_ITEM_H)
+  const index = Math.round(wheel.scrollTop / WHEEL_ITEM_H) - WHEEL_PAD
   const max = Number(wheel.dataset.max)
-  return Math.max(0, Math.min(idx, max))
+  return Math.max(0, Math.min(index, max))
 }
 
 // 中心那一格加深，其余靠 CSS 的渐变遮罩淡出。
 function markWheelActive(wheel) {
-  const current = wheelValue(wheel)
+  const value = wheelValue(wheel)
   wheel.querySelectorAll('.wheel-item').forEach((item, index) => {
-    item.classList.toggle('is-active', index === current)
+    item.classList.toggle('is-active', index === value + WHEEL_PAD)
   })
-  wheel.setAttribute('aria-activedescendant', `${wheel.id}-item-${current}`)
+  wheel.setAttribute('aria-activedescendant', `${wheel.id}-item-${value}`)
 }
 
 function buildWheel(wheel) {
@@ -952,7 +952,7 @@ function buildWheel(wheel) {
     clearTimeout(snapTimer)
     snapTimer = setTimeout(() => {
       const value = wheelValue(wheel)
-      wheel.scrollTop = value * WHEEL_ITEM_H
+      wheel.scrollTop = (value + WHEEL_PAD) * WHEEL_ITEM_H
       wheel.dataset.value = String(value)
       markWheelActive(wheel)
     }, 120)
