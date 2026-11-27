@@ -1659,7 +1659,9 @@ html { background: #e6eef9; }
   -webkit-backdrop-filter: blur(18px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, .9);
   box-shadow: 0 6px 20px rgba(23, 58, 122, .1);
-  overflow: hidden;
+  /* 不能 overflow:hidden——时间选择面板要溢出到卡片外，
+     裁掉就只剩半截。圆角由子元素自己保持即可。 */
+  overflow: visible;
 }
 .robot-head {
   display: flex;
@@ -1667,6 +1669,8 @@ html { background: #e6eef9; }
   gap: 16px;
   padding: 18px 20px 14px;
   border-bottom: 1px solid rgba(31, 95, 214, .1);
+  /* 父级不再裁切，头部自己带上圆角，免得底色方块露在外面 */
+  border-radius: 14px 14px 0 0;
 }
 .robot-head-text h3 {
   margin: 0;
@@ -1985,6 +1989,7 @@ html { background: #e6eef9; }
   gap: 10px;
   padding: 14px 20px;
   border-top: 1px solid rgba(31, 95, 214, .1);
+  border-radius: 0 0 14px 14px;
 }
 
 /* 空状态与错误 */
