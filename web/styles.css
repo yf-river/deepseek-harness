@@ -1755,7 +1755,7 @@ html { background: #e6eef9; }
   top: calc(100% + 8px);
   left: 0;
   z-index: 60;
-  width: 268px;
+  width: 288px;
   border-radius: 14px;
   background: #fff;
   border: 1px solid rgba(31, 95, 214, .12);
@@ -1841,13 +1841,14 @@ html { background: #e6eef9; }
 .time-pop-foot {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   padding: 10px 12px;
   border-top: 1px solid rgba(31, 95, 214, .09);
   background: #fafcff;
 }
 .time-quick {
-  padding: 4px 9px;
+  flex-shrink: 0;
+  padding: 4px 8px;
   font: inherit;
   font-size: var(--fs-xs);
   color: var(--muted-2);
@@ -1858,7 +1859,11 @@ html { background: #e6eef9; }
   transition: color .12s, background .12s;
 }
 .time-quick:hover { color: var(--blue); background: rgba(31, 95, 214, .12); }
-.time-done { margin-left: auto; }
+.time-done {
+  flex-shrink: 0;
+  margin-left: auto;
+  white-space: nowrap;
+}
 
 /* 主流程选择：玻璃胶囊，选中变蓝 */
 .suite-chip {

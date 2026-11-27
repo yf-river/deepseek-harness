@@ -911,14 +911,17 @@ function scrollIntoColumn(list, active) {
   list.scrollTop += delta
 }
 
-function markColumn(list, value) {
+function markColumn(list, value, scroll = true) {
   list.querySelectorAll('.time-opt').forEach((opt) => {
     const on = Number(opt.dataset.value) === value
     opt.classList.toggle('is-active', on)
     opt.setAttribute('aria-selected', on ? 'true' : 'false')
   })
-  const active = list.querySelector('.time-opt.is-active')
-  scrollIntoColumn(list, active)
+  // 面板隐藏时 clientHeight 是 0，居中算法会退化成「滚到底」，
+  // 所以只有可见时才滚；等面板打开后再补一次定位。
+  if (scroll && list.clientHeight > 0) {
+    scrollIntoColumn(list, list.querySelector('.time-opt.is-active'))
+  }
 }
 
 function buildColumns() {
@@ -966,8 +969,8 @@ function renderSchedule() {
   const big = document.getElementById('robot-time-big')
   if (trigger) trigger.textContent = text
   if (big) big.textContent = text
-  if (robotEl.hour) markColumn(robotEl.hour, scheduleHour)
-  if (robotEl.minute) markColumn(robotEl.minute, scheduleMinute)
+  if (robotEl.hour) markColumn(robotEl.hour, scheduleHour, false)
+  if (robotEl.minute) markColumn(robotEl.minute, scheduleMinute, false)
 }
 
 function setScheduleInput(value) {
