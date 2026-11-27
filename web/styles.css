@@ -504,42 +504,7 @@ a.site-card {
   transition: border-color .15s, background .15s, color .15s;
 }
 .suite-chip:hover { border-color: #b9cdee; }
-.suite-chip-mark {
-  position: relative;
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  border: 1.5px solid #c2c8d0;
-  border-radius: 4px;
-  background: var(--surface);
-  transition: border-color .15s, background .15s;
-}
-/* 勾：用一个旋转 45° 的两边表示，选中时出现 */
-.suite-chip-mark::after {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 4px;
-  height: 8px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg) scale(0);
-  transition: transform .15s;
-}
-.suite-chip[aria-pressed='true'] {
-  border-color: #c3d6f5;
-  background: var(--blue-soft);
-  color: var(--blue);
-  font-weight: 500;
-}
-.suite-chip[aria-pressed='true'] .suite-chip-mark {
-  border-color: var(--blue);
-  background: var(--blue);
-}
-.suite-chip[aria-pressed='true'] .suite-chip-mark::after {
-  transform: rotate(45deg) scale(1);
-}
+
 
 /* 时间输入：24 小时制两格，替代带系统图标的原生 time */
 /* 时间：时分在同一块里连续显示，避免出现两个独立小框像两个控件 */
@@ -1902,28 +1867,24 @@ html { background: #e6eef9; }
   border-color: rgba(31, 95, 214, .28);
   font-weight: 500;
 }
+/* 勾选框：14px 方块里放一个 SVG 对勾，未选中时勾透明，选中时显白 */
 .suite-chip-mark {
   display: grid;
   place-items: center;
-  width: 14px; height: 14px;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
   border-radius: 4px;
   border: 1.5px solid rgba(31, 95, 214, .34);
-  transition: background .15s, border-color .15s;
+  background: #fff;
+  color: transparent;
+  transition: background .15s, border-color .15s, color .15s;
 }
-.suite-chip-mark::after {
-  content: '';
-  width: 6px; height: 3px;
-  border-left: 1.5px solid transparent;
-  border-bottom: 1.5px solid transparent;
-  transform: rotate(-45deg) translateY(-1px);
-}
+.suite-chip-mark svg { width: 11px; height: 11px; display: block; }
 .suite-chip[aria-pressed='true'] .suite-chip-mark {
   background: var(--blue);
   border-color: var(--blue);
-}
-.suite-chip[aria-pressed='true'] .suite-chip-mark::after {
-  border-left-color: #fff;
-  border-bottom-color: #fff;
+  color: #fff;
 }
 
 /* 收件人：胶囊与输入框并排同一行。

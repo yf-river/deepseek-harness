@@ -802,7 +802,13 @@ function suiteCheckboxes(available, selected) {
     chip.type = 'button'
     chip.dataset.suite = suite.id
     chip.setAttribute('aria-pressed', selected.includes(suite.id) ? 'true' : 'false')
-    chip.appendChild(el('span', 'suite-chip-mark'))
+    // 用真正对勾形状的 SVG，不用旋转边框拼——后者在 14px 下容易看成斜杠
+    const mark = el('span', 'suite-chip-mark')
+    mark.innerHTML = `<svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path d="M2.6 6.2 4.9 8.5 9.4 4" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`
+    chip.appendChild(mark)
     chip.appendChild(el('span', 'suite-chip-name', suite.name))
     chip.addEventListener('click', () => {
       const on = chip.getAttribute('aria-pressed') === 'true'
