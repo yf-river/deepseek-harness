@@ -892,39 +892,112 @@ function clampPart(raw, max) {
   return pad2(number)
 }
 
+// ── 时间滚轮 ──
+// 手打时间容易出现 99、字母、半截数字，所以改成只读滚轮：
+// 上下滚动或方向键切换，取值天然落在合法范围内。
+const WHEEL_ITEM_H = 30
+const WHEEL_PAD = 2
+
+function wheelItems(wheel) {
+  return Number(wheel.dataset.max) + 1
+}
+
+// 把滚轮滚到某个值：用 scrollTop 定位，不用切换选中 class，
+// 这样滚动过程中高亮自然跟着中心那一格走。
+function setWheel(wheel, value) {
+  const max = Number(wheel.dataset.max)
+  const next = Math.max(0, Math.min(Number(value) || 0, max))
+  wheel.dataset.value = String(next)
+  wheel.scrollTop = next * WHEEL_ITEM_H
+  markWheelActive(wheel)
+}
+
+function wheelValue(wheel) {
+  const idx = Math.round(wheel.scrollTop / WHEEL_ITEM_H)
+  const max = Number(wheel.dataset.max)
+  return Math.max(0, Math.min(idx, max))
+}
+
+// 中心那一格加深，其余靠 CSS 的渐变遮罩淡出。
+function markWheelActive(wheel) {
+  const current = wheelValue(wheel)
+  wheel.querySelectorAll('.wheel-item').forEach((item, index) => {
+    item.classList.toggle('is-active', index === current)
+  })
+  wheel.setAttribute('aria-activedescendant', `${wheel.id}-item-${current}`)
+}
+
+function buildWheel(wheel) {
+  const max = Number(wheel.dataset.max)
+  const frag = document.createDocumentFragment()
+  // 首尾各留 PAD 格空白，让第一个和最后一个值也能滚到正中间。
+  for (let i = 0; i < WHEEL_PAD; i += 1) {
+    frag.appendChild(el('div', 'wheel-item is-pad'))
+  }
+  for (let i = 0; i <= max; i += 1) {
+    const item = el('div', 'wheel-item', pad2(i))
+    item.id = `${wheel.id}-item-${i}`
+    item.setAttribute('role', 'option')
+    frag.appendChild(item)
+  }
+  for (let i = 0; i < WHEEL_PAD; i += 1) {
+    frag.appendChild(el('div', 'wheel-item is-pad'))
+  }
+  wheel.replaceChildren(frag)
+
+  // 滚动停下后吸附到整格，并把值记下来。
+  let snapTimer = 0
+  wheel.addEventListener('scroll', () => {
+    markWheelActive(wheel)
+    clearTimeout(snapTimer)
+    snapTimer = setTimeout(() => {
+      const value = wheelValue(wheel)
+      wheel.scrollTop = value * WHEEL_ITEM_H
+      wheel.dataset.value = String(value)
+      markWheelActive(wheel)
+    }, 120)
+  }, { passive: true })
+
+  // 键盘：上下切换一格，PageUp/Down 跑十格。
+  wheel.addEventListener('keydown', (event) => {
+    const step = event.key === 'ArrowUp' ? -1
+      : event.key === 'ArrowDown' ? 1
+      : event.key === 'PageUp' ? -10
+      : event.key === 'PageDown' ? 10 : 0
+    if (!step) return
+    event.preventDefault()
+    setWheel(wheel, wheelValue(wheel) + step)
+  })
+
+  // 点某一格直接选中，不用滚。
+  wheel.addEventListener('click', (event) => {
+    const item = event.target.closest('.wheel-item')
+    if (!item || item.classList.contains('is-pad')) return
+    setWheel(wheel, Number(item.textContent))
+  })
+}
+
+function initScheduleWheels() {
+  [robotEl.hour, robotEl.minute].forEach((wheel) => {
+    if (wheel && !wheel.dataset.built) {
+      buildWheel(wheel)
+      wheel.dataset.built = '1'
+    }
+  })
+  setScheduleInput('08:00')
+}
+
 function setScheduleInput(value) {
   const match = /^(\d{1,2}):(\d{1,2})$/.exec(String(value || '').trim())
-  if (!match) {
-    robotEl.hour.value = '08'
-    robotEl.minute.value = '00'
-    return
-  }
-  robotEl.hour.value = pad2(Math.min(Number(match[1]), 23))
-  robotEl.minute.value = pad2(Math.min(Number(match[2]), 59))
+  const hour = match ? Math.min(Number(match[1]), 23) : 8
+  const minute = match ? Math.min(Number(match[2]), 59) : 0
+  if (robotEl.hour) setWheel(robotEl.hour, hour)
+  if (robotEl.minute) setWheel(robotEl.minute, minute)
 }
 
 function readScheduleInput() {
-  const hour = clampPart(robotEl.hour.value, 23) || '00'
-  const minute = clampPart(robotEl.minute.value, 59) || '00'
-  return `${hour}:${minute}`
-}
-
-// 输入即校验：只留数字、最多两位、超范围夹到边界；离开时补零。
-function bindTimeInput(input, max) {
-  input.addEventListener('input', () => {
-    const cleaned = String(input.value).replace(/\D/g, '').slice(0, 2)
-    input.value = cleaned
-  })
-  input.addEventListener('blur', () => {
-    input.value = clampPart(input.value, max) || '00'
-  })
-  input.addEventListener('keydown', (event) => {
-    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
-    event.preventDefault()
-    const current = Number(clampPart(input.value, max) || 0)
-    const next = event.key === 'ArrowUp' ? current + 1 : current - 1
-    input.value = pad2(Math.max(0, Math.min(next, max)))
-  })
+  if (!robotEl.hour || !robotEl.minute) return '08:00'
+  return `${pad2(wheelValue(robotEl.hour))}:${pad2(wheelValue(robotEl.minute))}`
 }
 
 // ── 收件人胶囊 ──
@@ -1200,8 +1273,7 @@ if (robotEl.save) {
     }
   })
   // 粘贴多个邮箱时直接解析，不用逐个回车。
-  bindTimeInput(robotEl.hour, 23)
-  bindTimeInput(robotEl.minute, 59)
+  initScheduleWheels()
   robotEl.mailto.addEventListener('blur', () => { commitMailInput() })
   robotEl.mailto.addEventListener('paste', () => {
     setTimeout(commitMailInput, 0)

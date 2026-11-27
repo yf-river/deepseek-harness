@@ -158,13 +158,13 @@
         <div class="robot-row">
           <dt>每天</dt>
           <dd>
-            <!-- 自定义时间选择：24 小时制时分两格，避免原生控件带系统图标与 12 小时制。 -->
-            <div class="time-picker" id="robot-schedule">
-              <input id="robot-hour" type="text" inputmode="numeric" maxlength="2"
-                     aria-label="小时" autocomplete="off">
-              <span class="time-colon">:</span>
-              <input id="robot-minute" type="text" inputmode="numeric" maxlength="2"
-                     aria-label="分钟" autocomplete="off">
+            <!-- 时间用滚轮选择，不让人手打数字：手打容易打出 99 或字母。 -->
+            <div class="time-wheels" id="robot-schedule">
+              <div class="wheel" id="robot-hour" role="listbox" tabindex="0"
+                   aria-label="小时" data-max="23"></div>
+              <span class="wheel-colon">:</span>
+              <div class="wheel" id="robot-minute" role="listbox" tabindex="0"
+                   aria-label="分钟" data-max="59"></div>
             </div>
             <span class="robot-hint" id="robot-next"></span>
           </dd>

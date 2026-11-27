@@ -1710,43 +1710,66 @@ html { background: #e6eef9; }
   font-variant-numeric: tabular-nums;
 }
 
-/* 时间选择：玻璃小控件，两格数字 */
-.time-picker {
+/* 时间滚轮：两个可滚动的数字轮，中间一条高亮带。
+   手打数字容易出现 99 / 字母 / 半截值，滚轮取值天然合法。 */
+.time-wheels {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 4px 10px;
-  border-radius: 10px;
-  background: rgba(31, 95, 214, .06);
-  border: 1px solid rgba(31, 95, 214, .14);
-  transition: border-color .15s, background .15s;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .7);
+  border: 1px solid rgba(31, 95, 214, .16);
+  transition: border-color .15s, box-shadow .15s, background .15s;
 }
-.time-picker:hover { border-color: rgba(31, 95, 214, .3); }
-.time-picker:focus-within {
+.time-wheels:hover { border-color: rgba(31, 95, 214, .3); }
+.time-wheels:focus-within {
   background: #fff;
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(31, 95, 214, .14);
 }
-.time-picker input {
-  width: 26px;
-  padding: 0;
-  font: inherit;
-  font-size: var(--fs-md);
-  font-weight: 600;
-  color: var(--ink);
-  text-align: center;
-  background: none;
-  border: none;
-  outline: none;
-  font-variant-numeric: tabular-nums;
-}
-.time-colon {
+.wheel-colon {
   font-size: var(--fs-md);
   font-weight: 600;
   color: var(--muted-2);
-  padding-bottom: 1px;
+  padding-bottom: 2px;
 }
-
+.wheel {
+  /* 三格高：上下一格露一半出来，暗示可以滚 */
+  height: 90px;
+  width: 34px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  outline: none;
+  /* 上下渐隐：中间清晰、两端淡出，看起来像滚轮 */
+  mask-image: linear-gradient(to bottom,
+    transparent 0, #000 30px, #000 60px, transparent 90px);
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0, #000 30px, #000 60px, transparent 90px);
+}
+.wheel::-webkit-scrollbar { display: none; }
+.wheel-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  color: var(--muted-2);
+  font-variant-numeric: tabular-nums;
+  scroll-snap-align: center;
+  cursor: pointer;
+  transition: color .12s, transform .12s;
+  user-select: none;
+}
+.wheel-item.is-pad { cursor: default; }
+.wheel-item.is-active {
+  color: var(--ink);
+  font-weight: 600;
+  transform: scale(1.08);
+}
 /* 主流程选择：玻璃胶囊，选中变蓝 */
 .suite-chip {
   display: inline-flex;
