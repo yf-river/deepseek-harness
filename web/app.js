@@ -902,18 +902,23 @@ function wheelItems(wheel) {
   return Number(wheel.dataset.max) + 1
 }
 
-// 首尾各留 PAD 格空白，所以「第几个格子」和「值是几」差一个 PAD 偏移。
-// 之前漏了这个偏移，导致显示 06 而实际值是 8。
+// 滚轮三格高，当前值要落在中间那一格。
+// 列表首尾各留 PAD 格空白，所以「内容里的第几个格子」=
+// 「值 + PAD」，再减掉一格（中间格的偏移）才是 scrollTop。
+function wheelScrollTop(value) {
+  return (value + WHEEL_PAD - 1) * WHEEL_ITEM_H
+}
+
 function setWheel(wheel, value) {
   const max = Number(wheel.dataset.max)
   const next = Math.max(0, Math.min(Number(value) || 0, max))
   wheel.dataset.value = String(next)
-  wheel.scrollTop = (next + WHEEL_PAD) * WHEEL_ITEM_H
+  wheel.scrollTop = wheelScrollTop(next)
   markWheelActive(wheel)
 }
 
 function wheelValue(wheel) {
-  const index = Math.round(wheel.scrollTop / WHEEL_ITEM_H) - WHEEL_PAD
+  const index = Math.round(wheel.scrollTop / WHEEL_ITEM_H) - WHEEL_PAD + 1
   const max = Number(wheel.dataset.max)
   return Math.max(0, Math.min(index, max))
 }
@@ -952,7 +957,7 @@ function buildWheel(wheel) {
     clearTimeout(snapTimer)
     snapTimer = setTimeout(() => {
       const value = wheelValue(wheel)
-      wheel.scrollTop = (value + WHEEL_PAD) * WHEEL_ITEM_H
+      wheel.scrollTop = wheelScrollTop(value)
       wheel.dataset.value = String(value)
       markWheelActive(wheel)
     }, 120)
