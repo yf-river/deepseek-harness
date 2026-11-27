@@ -660,18 +660,22 @@ a.site-card {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  /* 24px 点击区：16px 太小，手指点不准，也不满足无障碍最小值 */
+  width: 24px;
+  height: 24px;
+  margin: -4px -6px -4px 0;
   padding: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: 999px;
   background: transparent;
-  color: #6d8fc4;
-  font-size: 13px;
+  /* 原来 #6d8fc4 配浅蓝底只有 2.77:1；加深到 4.6:1 */
+  color: #3f6396;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
+  transition: background .12s, color .12s;
 }
-.mail-chip-remove:hover { background: #dbe7fb; color: var(--blue); }
+.mail-chip-remove:hover { background: rgba(31, 95, 214, .16); color: var(--blue-dark); }
 
 
 .robot-actions {
