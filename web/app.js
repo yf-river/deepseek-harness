@@ -892,117 +892,143 @@ function clampPart(raw, max) {
   return pad2(number)
 }
 
-// ── 时间滚轮 ──
-// 手打时间容易出现 99、字母、半截数字，所以改成只读滚轮：
-// 上下滚动或方向键切换，取值天然落在合法范围内。
-const WHEEL_ITEM_H = 30
-const WHEEL_PAD = 2
+// ── 时间选择 ──
+// 按钮显示当前时间，点开才出面板：左边小时、右边分钟，各自一列按钮。
+// 不用输入框（省得校验 99 / 字母），也不用常驻滚轮（省得页面上挂一堆半截数字）。
+const TIME_HOURS = Array.from({ length: 24 }, (_, i) => i)
+const TIME_MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 
-function wheelItems(wheel) {
-  return Number(wheel.dataset.max) + 1
+let scheduleHour = 8
+let scheduleMinute = 0
+
+// 列表定位：把选中的那一项滚进可视区，而不是让整页跳动。
+function scrollIntoColumn(list, active) {
+  if (!list || !active) return
+  const top = active.offsetTop - list.clientHeight / 2 + active.offsetHeight / 2
+  list.scrollTop = Math.max(0, top)
 }
 
-// 滚轮三格高，当前值要落在中间那一格。
-// 列表首尾各留 PAD 格空白，所以「内容里的第几个格子」=
-// 「值 + PAD」，再减掉一格（中间格的偏移）才是 scrollTop。
-function wheelScrollTop(value) {
-  return (value + WHEEL_PAD - 1) * WHEEL_ITEM_H
-}
-
-function setWheel(wheel, value) {
-  const max = Number(wheel.dataset.max)
-  const next = Math.max(0, Math.min(Number(value) || 0, max))
-  wheel.dataset.value = String(next)
-  wheel.scrollTop = wheelScrollTop(next)
-  markWheelActive(wheel)
-}
-
-function wheelValue(wheel) {
-  const index = Math.round(wheel.scrollTop / WHEEL_ITEM_H) - WHEEL_PAD + 1
-  const max = Number(wheel.dataset.max)
-  return Math.max(0, Math.min(index, max))
-}
-
-// 中心那一格加深，其余靠 CSS 的渐变遮罩淡出。
-function markWheelActive(wheel) {
-  const value = wheelValue(wheel)
-  wheel.querySelectorAll('.wheel-item').forEach((item, index) => {
-    item.classList.toggle('is-active', index === value + WHEEL_PAD)
+function markColumn(list, value) {
+  list.querySelectorAll('.time-opt').forEach((opt) => {
+    const on = Number(opt.dataset.value) === value
+    opt.classList.toggle('is-active', on)
+    opt.setAttribute('aria-selected', on ? 'true' : 'false')
   })
-  wheel.setAttribute('aria-activedescendant', `${wheel.id}-item-${value}`)
+  const active = list.querySelector('.time-opt.is-active')
+  scrollIntoColumn(list, active)
 }
 
-function buildWheel(wheel) {
-  const max = Number(wheel.dataset.max)
-  const frag = document.createDocumentFragment()
-  // 首尾各留 PAD 格空白，让第一个和最后一个值也能滚到正中间。
-  for (let i = 0; i < WHEEL_PAD; i += 1) {
-    frag.appendChild(el('div', 'wheel-item is-pad'))
+function buildColumns() {
+  const hourList = robotEl.hour
+  const minuteList = robotEl.minute
+  if (!hourList || !minuteList) return
+
+  if (!hourList.dataset.built) {
+    hourList.replaceChildren()
+    TIME_HOURS.forEach((h) => {
+      const opt = el('button', 'time-opt', pad2(h))
+      opt.type = 'button'
+      opt.dataset.value = String(h)
+      opt.setAttribute('role', 'option')
+      opt.addEventListener('click', () => {
+        scheduleHour = h
+        renderSchedule()
+      })
+      hourList.appendChild(opt)
+    })
+    hourList.dataset.built = '1'
   }
-  for (let i = 0; i <= max; i += 1) {
-    const item = el('div', 'wheel-item', pad2(i))
-    item.id = `${wheel.id}-item-${i}`
-    item.setAttribute('role', 'option')
-    frag.appendChild(item)
+
+  if (!minuteList.dataset.built) {
+    minuteList.replaceChildren()
+    TIME_MINUTES.forEach((m) => {
+      const opt = el('button', 'time-opt', pad2(m))
+      opt.type = 'button'
+      opt.dataset.value = String(m)
+      opt.setAttribute('role', 'option')
+      opt.addEventListener('click', () => {
+        scheduleMinute = m
+        renderSchedule()
+      })
+      minuteList.appendChild(opt)
+    })
+    minuteList.dataset.built = '1'
   }
-  for (let i = 0; i < WHEEL_PAD; i += 1) {
-    frag.appendChild(el('div', 'wheel-item is-pad'))
-  }
-  wheel.replaceChildren(frag)
-
-  // 滚动停下后吸附到整格，并把值记下来。
-  let snapTimer = 0
-  wheel.addEventListener('scroll', () => {
-    markWheelActive(wheel)
-    clearTimeout(snapTimer)
-    snapTimer = setTimeout(() => {
-      const value = wheelValue(wheel)
-      wheel.scrollTop = wheelScrollTop(value)
-      wheel.dataset.value = String(value)
-      markWheelActive(wheel)
-    }, 120)
-  }, { passive: true })
-
-  // 键盘：上下切换一格，PageUp/Down 跑十格。
-  wheel.addEventListener('keydown', (event) => {
-    const step = event.key === 'ArrowUp' ? -1
-      : event.key === 'ArrowDown' ? 1
-      : event.key === 'PageUp' ? -10
-      : event.key === 'PageDown' ? 10 : 0
-    if (!step) return
-    event.preventDefault()
-    setWheel(wheel, wheelValue(wheel) + step)
-  })
-
-  // 点某一格直接选中，不用滚。
-  wheel.addEventListener('click', (event) => {
-    const item = event.target.closest('.wheel-item')
-    if (!item || item.classList.contains('is-pad')) return
-    setWheel(wheel, Number(item.textContent))
-  })
 }
 
-function initScheduleWheels() {
-  [robotEl.hour, robotEl.minute].forEach((wheel) => {
-    if (wheel && !wheel.dataset.built) {
-      buildWheel(wheel)
-      wheel.dataset.built = '1'
-    }
-  })
-  setScheduleInput('08:00')
+// 面板里所有显示时间的地方统一刷新，避免预览和后端值不一致。
+function renderSchedule() {
+  const text = `${pad2(scheduleHour)}:${pad2(scheduleMinute)}`
+  const trigger = document.getElementById('robot-time-text')
+  const big = document.getElementById('robot-time-big')
+  if (trigger) trigger.textContent = text
+  if (big) big.textContent = text
+  if (robotEl.hour) markColumn(robotEl.hour, scheduleHour)
+  if (robotEl.minute) markColumn(robotEl.minute, scheduleMinute)
 }
 
 function setScheduleInput(value) {
   const match = /^(\d{1,2}):(\d{1,2})$/.exec(String(value || '').trim())
-  const hour = match ? Math.min(Number(match[1]), 23) : 8
-  const minute = match ? Math.min(Number(match[2]), 59) : 0
-  if (robotEl.hour) setWheel(robotEl.hour, hour)
-  if (robotEl.minute) setWheel(robotEl.minute, minute)
+  if (match) {
+    scheduleHour = Math.min(Number(match[1]), 23)
+    // 只保留 5 分钟一档：外部传来 08:07 时吸附到最近的档位，避免选中项看不见。
+    const rawMinute = Math.min(Number(match[2]), 59)
+    scheduleMinute = TIME_MINUTES.reduce(
+      (best, m) => (Math.abs(m - rawMinute) < Math.abs(best - rawMinute) ? m : best),
+      TIME_MINUTES[0],
+    )
+  }
+  buildColumns()
+  renderSchedule()
 }
 
 function readScheduleInput() {
-  if (!robotEl.hour || !robotEl.minute) return '08:00'
-  return `${pad2(wheelValue(robotEl.hour))}:${pad2(wheelValue(robotEl.minute))}`
+  return `${pad2(scheduleHour)}:${pad2(scheduleMinute)}`
+}
+
+// 打开 / 关闭面板；点外面或按 Esc 关闭。
+function openTimePop(open) {
+  const pop = document.getElementById('robot-time-pop')
+  const trigger = document.getElementById('robot-time-trigger')
+  if (!pop || !trigger) return
+  pop.hidden = !open
+  trigger.setAttribute('aria-expanded', open ? 'true' : 'false')
+  if (open) {
+    renderSchedule()
+    // 展开后再滚，否则容器还没高度，scrollIntoColumn 算不出来。
+    requestAnimationFrame(() => {
+      if (robotEl.hour) markColumn(robotEl.hour, scheduleHour)
+      if (robotEl.minute) markColumn(robotEl.minute, scheduleMinute)
+    })
+  }
+}
+
+function bindTimePop() {
+  const trigger = document.getElementById('robot-time-trigger')
+  const done = document.getElementById('robot-time-done')
+  if (!trigger) return
+
+  trigger.addEventListener('click', () => {
+    const pop = document.getElementById('robot-time-pop')
+    openTimePop(pop.hidden)
+  })
+  if (done) done.addEventListener('click', () => openTimePop(false))
+
+  document.querySelectorAll('.time-quick').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setScheduleInput(btn.dataset.at)
+      openTimePop(false)
+    })
+  })
+
+  document.addEventListener('click', (event) => {
+    const field = document.getElementById('robot-schedule')
+    if (!field || field.contains(event.target)) return
+    openTimePop(false)
+  })
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') openTimePop(false)
+  })
 }
 
 // ── 收件人胶囊 ──
@@ -1278,7 +1304,8 @@ if (robotEl.save) {
     }
   })
   // 粘贴多个邮箱时直接解析，不用逐个回车。
-  initScheduleWheels()
+  bindTimePop()
+  setScheduleInput('08:00')
   robotEl.mailto.addEventListener('blur', () => { commitMailInput() })
   robotEl.mailto.addEventListener('paste', () => {
     setTimeout(commitMailInput, 0)

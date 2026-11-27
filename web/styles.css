@@ -1710,66 +1710,152 @@ html { background: #e6eef9; }
   font-variant-numeric: tabular-nums;
 }
 
-/* 时间滚轮：两个可滚动的数字轮，中间一条高亮带。
-   手打数字容易出现 99 / 字母 / 半截值，滚轮取值天然合法。 */
-.time-wheels {
+/* 时间选择：一个按钮显示当前值，点开才是选择面板。
+   以前是常驻滚轮，页面上一直挂着几行半截数字，很吵。 */
+.time-field { position: relative; display: inline-flex; }
+
+.time-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 8px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, .7);
-  border: 1px solid rgba(31, 95, 214, .16);
+  gap: 7px;
+  padding: 6px 11px;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .8);
+  border: 1px solid rgba(31, 95, 214, .18);
+  border-radius: 10px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
-.time-wheels:hover { border-color: rgba(31, 95, 214, .3); }
-.time-wheels:focus-within {
+.time-trigger:hover { border-color: rgba(31, 95, 214, .34); background: #fff; }
+.time-trigger[aria-expanded='true'] {
   background: #fff;
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(31, 95, 214, .14);
 }
-.wheel-colon {
-  font-size: var(--fs-md);
-  font-weight: 600;
+.time-icon { width: 14px; height: 14px; color: var(--blue); flex-shrink: 0; }
+.time-caret {
+  width: 12px; height: 12px;
   color: var(--muted-2);
-  padding-bottom: 2px;
+  flex-shrink: 0;
+  transition: transform .16s;
 }
-.wheel {
-  /* 三格高：上下一格露一半出来，暗示可以滚 */
-  height: 90px;
-  width: 34px;
+.time-trigger[aria-expanded='true'] .time-caret { transform: rotate(180deg); }
+
+/* 面板 */
+.time-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  width: 268px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(31, 95, 214, .12);
+  box-shadow: 0 14px 40px rgba(23, 58, 122, .18);
+  overflow: hidden;
+  animation: time-pop-in .14s ease-out;
+}
+@keyframes time-pop-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.time-pop-preview {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 13px 16px 11px;
+  border-bottom: 1px solid rgba(31, 95, 214, .09);
+}
+.time-pop-big {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -.6px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.time-pop-cap { font-size: var(--fs-xs); color: var(--muted-2); }
+
+.time-pop-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: rgba(31, 95, 214, .08);
+}
+.time-col {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  min-width: 0;
+}
+.time-col-title {
+  padding: 8px 0 6px;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--muted-2);
+}
+.time-col-list {
+  /* 五格高：够看出上下还有更多档，又不至于把面板拉太长 */
+  max-height: 150px;
   overflow-y: auto;
-  scroll-snap-type: y mandatory;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  outline: none;
-  /* 上下渐隐：中间清晰、两端淡出，看起来像滚轮 */
-  mask-image: linear-gradient(to bottom,
-    transparent 0, #000 30px, #000 60px, transparent 90px);
-  -webkit-mask-image: linear-gradient(to bottom,
-    transparent 0, #000 30px, #000 60px, transparent 90px);
+  padding-bottom: 8px;
+  scrollbar-width: thin;
 }
-.wheel::-webkit-scrollbar { display: none; }
-.wheel-item {
+.time-col-list::-webkit-scrollbar { width: 5px; }
+.time-col-list::-webkit-scrollbar-thumb {
+  background: rgba(31, 95, 214, .2);
+  border-radius: 3px;
+}
+
+.time-opt {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 1px 8px;
+  padding: 6px 0;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--body);
+  text-align: center;
+  background: none;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: background .12s, color .12s;
+}
+.time-opt:hover { background: rgba(31, 95, 214, .07); }
+.time-opt.is-active {
+  color: #fff;
+  background: var(--blue);
+  font-weight: 600;
+}
+
+.time-pop-foot {
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 30px;
-  font-size: var(--fs-md);
-  font-weight: 500;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(31, 95, 214, .09);
+  background: #fafcff;
+}
+.time-quick {
+  padding: 4px 9px;
+  font: inherit;
+  font-size: var(--fs-xs);
   color: var(--muted-2);
-  font-variant-numeric: tabular-nums;
-  scroll-snap-align: center;
+  background: rgba(31, 95, 214, .06);
+  border: none;
+  border-radius: 7px;
   cursor: pointer;
-  transition: color .12s, transform .12s;
-  user-select: none;
+  transition: color .12s, background .12s;
 }
-.wheel-item.is-pad { cursor: default; }
-.wheel-item.is-active {
-  color: var(--ink);
-  font-weight: 600;
-  transform: scale(1.08);
-}
+.time-quick:hover { color: var(--blue); background: rgba(31, 95, 214, .12); }
+.time-done { margin-left: auto; }
+
 /* 主流程选择：玻璃胶囊，选中变蓝 */
 .suite-chip {
   display: inline-flex;
