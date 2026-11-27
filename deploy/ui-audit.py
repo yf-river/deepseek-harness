@@ -64,10 +64,16 @@ AUDIT_JS = r"""
   }
 
   // 3. 同一行内元素中心线对齐（按 top 分组，同一行的卡片高度应一致）
-  const rows = document.querySelectorAll('.wb-cards, .env-list');
+  const rows = document.querySelectorAll('.wb-cards, .wb-overview');
   rows.forEach((row) => {
+    // 只检查横向排布的行；纵向列表（.env-list）本来就一列，比中心线没意义
+    const cs = getComputedStyle(row);
+    if (!cs.display.includes('grid') && !cs.display.includes('flex')) return;
     const kids = [...row.children].filter((k) => k.getBoundingClientRect().height > 0);
     if (kids.length < 2) return;
+    // 同一列的元素 top 不同，先按 top 分组，只比真正同一行的
+    const tops = kids.map((k) => Math.round(k.getBoundingClientRect().top));
+    if (new Set(tops).size !== 1) return;
     const centers = kids.map((k) => {
       const b = k.getBoundingClientRect();
       return b.top + b.height / 2;
