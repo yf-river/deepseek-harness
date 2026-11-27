@@ -1745,12 +1745,12 @@ html { background: #e6eef9; }
 }
 .time-trigger[aria-expanded='true'] .time-caret { transform: rotate(180deg); }
 
-/* 面板 */
+/* 面板：贴着按钮下方展开，往上弹不会盖住上一行 */
 .time-pop {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  z-index: 40;
+  z-index: 60;
   width: 268px;
   border-radius: 14px;
   background: #fff;

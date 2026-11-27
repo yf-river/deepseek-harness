@@ -901,11 +901,14 @@ const TIME_MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 let scheduleHour = 8
 let scheduleMinute = 0
 
-// 列表定位：把选中的那一项滚进可视区，而不是让整页跳动。
+// 列表定位：把选中的那一项滚到列的垂直中间。
+// 不能用 offsetTop——它相对 offsetParent，不是相对这个滚动容器。
 function scrollIntoColumn(list, active) {
   if (!list || !active) return
-  const top = active.offsetTop - list.clientHeight / 2 + active.offsetHeight / 2
-  list.scrollTop = Math.max(0, top)
+  const listBox = list.getBoundingClientRect()
+  const itemBox = active.getBoundingClientRect()
+  const delta = (itemBox.top - listBox.top) - (list.clientHeight - itemBox.height) / 2
+  list.scrollTop += delta
 }
 
 function markColumn(list, value) {
